@@ -5,9 +5,13 @@ const busStopSchema = new mongoose.Schema({
     BusStopCode: String,
     RoadName: String,
     Description: String,
-    Latitude: Number,
-    Longitude: Number
+    Location: {
+        type: String,
+        coordinates: []
+    }
 });
+
+busStopSchema.index({location: "2dsphere"});
 
 const busStopModel = mongoose.model<BusStop & mongoose.Document>('BusStop', busStopSchema);
 

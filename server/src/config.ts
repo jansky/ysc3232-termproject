@@ -2,7 +2,8 @@ import 'dotenv/config';
 
 const settings = {
     port: parseInt(process.env.PORT || "3000"),
-    mongodb_url: process.env.MONGO_URL || "mongodb://localhost:27017/busdirection"
+    mongodb_url: process.env.MONGO_URL || "mongodb://localhost:27017/busdirection",
+    lta_api_key: process.env.LTA_API_KEY || ""
 };
 
 export default settings;
