@@ -1,6 +1,10 @@
 import request = require('request');
 import BusStop from "../bus-stop/bus-stop.interface";
 import BusStopModel from '../bus-stop/bus-stop.model';
+import BusService from "../bus-service/bus-service.interface";
+import BusServiceModel from '../bus-service/bus-service.model';
+import BusSegment from "../bus-segment/bus-segment.interface";
+import BusSegmentModel from '../bus-segment/bus-segment.model';
 
 /**
  * A class to help query the LTA API
@@ -66,12 +70,8 @@ class LTAApi {
      * must query them all using the $skip query string parameter. This function makes as many requests as needed
      * to retrieve all data.
      * @param url The LTA API url to retrieve data from
-     * @param accumulated Data values that have been already retrieved. When calling this method, you should pass an empty array
-     * @param skip What number entry we should start retrieving
-     * @param resolve A function (usually associated with a promise) that will be called when all data is retrieved
-     * @param reject A function (usually associated with a promise) that will be called if an error is encountered
      */
-    private getAndAccumulate(url : string, accumulated : any[], skip: number, resolve: any, reject: any) {
+    private async getAndAccumulate(url : string, accumulated: any[], skip: number, resolve: any, reject: any) {
 
         this.get(url, skip).then(response => {
 
@@ -86,6 +86,38 @@ class LTAApi {
         }, failure => {
             reject(failure);
         })
+
+    }
+
+    private async getAndAccumulateHashMap(url : string, keyfunc: (_ : any) => string) {
+
+        let skip : number = 0;
+        let accumulated : {[key: string]: any[]} = {};
+
+        let response : any[] = [];
+
+        while(response.length > 0 || skip == 0){
+
+            for(let datum of response) {
+
+                const key = keyfunc(datum);
+                const datums = accumulated[key];
+                if(datums) {
+                    datums.push(datum);
+
+                } else {
+                    accumulated[key] = [datum];
+                }
+
+            }
+
+            skip += 500;
+
+            response = await this.get(url, skip);
+
+        }
+
+        return accumulated;
 
     }
 
@@ -148,6 +180,150 @@ class LTAApi {
                 }
 
                 resolve(busStops);
+
+            }, failure => reject(failure));
+
+        });
+
+    }
+
+    /**
+     * Retrieves all bus services from the LTA API
+     *
+     * @returns A promise that will resolve with the list of all public bus services in Singapore
+     */
+    public getAllBusServices() : Promise<BusService[]> {
+
+        const apiResponse = new Promise<any>(
+            (resolve, reject) =>
+                this.getAndAccumulate("BusServices", [], 0, resolve, reject));
+
+        return new Promise<BusService[]>((resolve, reject) => {
+
+            apiResponse.then(services => {
+
+                let busServices : Array<BusService> = new Array<BusService>();
+
+                for(let service of services) {
+
+                    if(typeof(service.ServiceNo) !== "string") {
+                        reject(new Error("Bus service did not contain ServiceNo"));
+                        return;
+                    }
+
+                    if(typeof(service.Operator) !== "string") {
+                        reject(new Error("Bus service did not contain Operator"));
+                        return;
+                    }
+
+                    if(typeof(service.Direction) !== "number") {
+                        reject(new Error("Bus service did not contain Direction"));
+                        return;
+                    }
+
+                    if(typeof(service.Category) !== "string") {
+                        reject(new Error("Bus service did not contain Category"));
+                        return;
+                    }
+
+                    if(typeof(service.OriginCode) !== "string") {
+                        reject(new Error("Bus service did not contain OriginCode"));
+                        return;
+                    }
+
+                    if(typeof(service.DestinationCode) !== "string") {
+                        reject(new Error("Bus service did not contain DestinationCode"));
+                        return;
+                    }
+
+                    if(typeof(service.LoopDesc) !== "string") {
+                        reject(new Error("Bus service did not contain LoopDesc"));
+                        return;
+                    }
+
+                    const busService : BusService = new BusServiceModel({
+                        ServiceNo: service.ServiceNo,
+                        Operator: service.Operator,
+                        Direction: service.Direction,
+                        Category: service.Category,
+                        OriginCode: service.OriginCode,
+                        DestinationCode: service.DestinationCode,
+                        LoopDesc: service.LoopDesc
+                    });
+
+                    busServices.push(busService);
+
+                }
+
+                resolve(busServices);
+
+            }, failure => reject(failure));
+
+        });
+
+    }
+
+    /**
+     * Returns all bus route segments
+     * @param speedNormal The average speed a bus along a normal segment
+     * @param speedExpress The average speed of a bus along an express segment
+     */
+    public getAllBusSegments(speedNormal : number, speedExpress : number) : Promise<BusSegment[]> {
+
+        const apiResponse =
+                this.getAndAccumulateHashMap(
+                    "BusRoutes",
+                    segment => `${segment.ServiceNo}_${segment.Direction}`);
+
+        return new Promise<BusSegment[]>((resolve, reject) => {
+
+            apiResponse.then((serviceSegments : {[key: string]: any[]}) => {
+
+                const busSegments : Array<BusSegment> = new Array<BusSegment>();
+
+                for(let service of Object.keys(serviceSegments)) {
+
+                    const route : any[] | undefined = serviceSegments[service];
+
+                    if(!route) {
+                        reject(new Error(`Unable to get information for ${service}`))
+                        return;
+                    }
+
+                    route.sort((a, b) => {
+                       if(a.StopSequence < b.StopSequence) { return -1; }
+                       else if(a.StopSequence == b.StopSequence) { return 0; }
+                       else { return 1; }
+                    });
+
+                    for(let i = 0; i < route.length - 1; i++) {
+
+                        const stop_i = route[i];
+                        const stop_i1 = route[i + 1];
+
+                        /* Sometimes the distance is incorrectly reported as zero or negative
+                           To fix this we return the absolute value of the distance, plus a small addition
+                           to make sure it's not zero.
+                         */
+                        const distance : number = Math.abs(stop_i1.Distance - stop_i.Distance) + 0.01;
+
+                        const time : number = (distance < 5 ?  Math.ceil(distance / speedNormal) * 60 : Math.ceil(distance / speedExpress) * 60);
+
+                        const busSegment = new BusSegmentModel({
+                            ServiceNo: stop_i.ServiceNo,
+                            Direction: stop_i.Direction,
+                            OriginCode: stop_i.BusStopCode,
+                            DestinationCode: stop_i1.BusStopCode,
+                            TravelTime: time,
+                        });
+
+                        busSegments.push(busSegment);
+
+                    }
+
+                }
+
+                resolve(busSegments);
 
             }, failure => reject(failure));
 
