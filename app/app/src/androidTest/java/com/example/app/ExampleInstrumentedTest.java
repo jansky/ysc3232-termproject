@@ -1,4 +1,4 @@
-package com.janskyd.busdirection;
+package com.example.app;
 
 import android.content.Context;
 
@@ -22,6 +22,6 @@ public class ExampleInstrumentedTest {
         // Context of the app under test.
         Context appContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
-        assertEquals("com.janskyd.busdirection", appContext.getPackageName());
+        assertEquals("com.example.app", appContext.getPackageName());
     }
 }

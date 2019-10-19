@@ -1,4 +1,4 @@
-package com.janskyd.busdirection;
+package com.example.app;
 
 import org.junit.Test;
 
