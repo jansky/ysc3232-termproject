@@ -2,13 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="d25b8b59-eaea-4521-bec3-74b4e596869d" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/bus-segment/bus-segment.interface.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/bus-segment/bus-segment.model.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/path-finding/graph.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lta.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/lta.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lta/lta.api.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/lta/lta.api.ts" afterDir="false" />
     </list>
@@ -67,7 +61,7 @@
       <updated>1570784180569</updated>
       <workItem from="1570784183059" duration="784000" />
       <workItem from="1570784980691" duration="33305000" />
-      <workItem from="1571502767919" duration="9585000" />
+      <workItem from="1571502767919" duration="10138000" />
     </task>
     <servers />
   </component>

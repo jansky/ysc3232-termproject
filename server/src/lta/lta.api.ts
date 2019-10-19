@@ -307,7 +307,7 @@ class LTAApi {
                          */
                         const distance : number = Math.abs(stop_i1.Distance - stop_i.Distance) + 0.01;
 
-                        const time : number = (distance < 5 ?  Math.ceil(distance / speedNormal) * 60 : Math.ceil(distance / speedExpress) * 60);
+                        const time : number = (distance < 5 ?  Math.ceil(distance / speedNormal * 60)  : Math.ceil(distance / speedExpress * 60));
 
                         const busSegment = new BusSegmentModel({
                             ServiceNo: stop_i.ServiceNo,
