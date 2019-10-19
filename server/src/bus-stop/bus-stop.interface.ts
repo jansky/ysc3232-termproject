@@ -2,8 +2,10 @@ interface BusStop {
     BusStopCode: String;
     RoadName: String;
     Description: String;
-    Latitude: Number;
-    Longitude: Number;
+    Location: {
+        type: String;
+        coordinates: []
+    }
 }
 
 export default BusStop;

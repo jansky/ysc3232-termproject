@@ -9,7 +9,7 @@ const busStopSchema = new mongoose.Schema({
         type: String,
         coordinates: []
     }
-});
+}, { typeKey: '$type' });
 
 busStopSchema.index({location: "2dsphere"});
 

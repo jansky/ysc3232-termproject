@@ -7,6 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "tsc": "tsc",
     "dev": "node -r ts-node/register ./src/server.ts --inspect=5858",
+    "lta": "node -r ts-node/register ./src/lta.ts",
     "start:watch": "nodemon"
   },
   "author": "",
