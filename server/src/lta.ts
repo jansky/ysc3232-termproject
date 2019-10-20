@@ -61,7 +61,7 @@ busStopModel.find({}).remove(err => {
                             console.error(err);
                             return;
                         }
-                        
+
                         console.log("Wrote dijkstra graph.");
 
                     })
