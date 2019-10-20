@@ -71,7 +71,7 @@ class LTAApi {
      * to retrieve all data.
      * @param url The LTA API url to retrieve data from
      */
-    private async getAndAccumulate(url : string, accumulated: any[], skip: number, resolve: any, reject: any) {
+    private getAndAccumulate(url : string, accumulated: any[], skip: number, resolve: any, reject: any) {
 
         this.get(url, skip).then(response => {
 
@@ -307,7 +307,7 @@ class LTAApi {
                          */
                         const distance : number = Math.abs(stop_i1.Distance - stop_i.Distance) + 0.01;
 
-                        const time : number = (distance < 5 ?  Math.ceil(distance / speedNormal * 60)  : Math.ceil(distance / speedExpress * 60));
+                        const time : number = (distance < 5 ?  Math.ceil(distance / speedNormal * 60) : Math.ceil(distance / speedExpress * 60));
 
                         const busSegment = new BusSegmentModel({
                             ServiceNo: stop_i.ServiceNo,
