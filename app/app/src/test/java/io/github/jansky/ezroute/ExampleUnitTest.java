@@ -1,4 +1,4 @@
-package com.example.app;
+package io.github.jansky.ezroute;
 
 import org.junit.Test;
 
