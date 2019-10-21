@@ -11,6 +11,9 @@ const busServiceSchema = new mongoose.Schema({
     LoopDesc: String
 });
 
+/**
+ * A Mongoose model for storing and retrieving bus services
+ */
 const busServiceModel = mongoose.model<BusService & mongoose.Document>('BusService', busServiceSchema);
 
 export default busServiceModel;

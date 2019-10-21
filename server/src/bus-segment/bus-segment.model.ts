@@ -9,6 +9,9 @@ const busSegmentSchema = new mongoose.Schema({
     DestinationCode: String
 });
 
+/**
+ * A Mongoose model for storing and retrieving bus route segments
+ */
 const busSegmentModel = mongoose.model<BusSegment & mongoose.Document>('BusSegment', busSegmentSchema);
 
 export default busSegmentModel;

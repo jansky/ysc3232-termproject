@@ -4,11 +4,11 @@
   "description": "Backend server for bus direction app project",
   "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node -r ts-node/register ./src/test.ts",
     "tsc": "tsc",
     "dev": "node -r ts-node/register ./src/server.ts --inspect=5858",
     "lta": "node -r ts-node/register ./src/lta.ts",
-    "doc": "./node_modules/.bin/typedoc --out ./doc/ src/",
+    "doc": "typedoc --out ./doc/ ./src/",
     "start:watch": "nodemon"
   },
   "author": "",

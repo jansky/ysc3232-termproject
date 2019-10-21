@@ -5,6 +5,8 @@ import BusService from "../bus-service/bus-service.interface";
 import BusServiceModel from '../bus-service/bus-service.model';
 import BusSegment from "../bus-segment/bus-segment.interface";
 import BusSegmentModel from '../bus-segment/bus-segment.model';
+import BusArrival from "../bus-arrival/bus-arrival.interface";
+import BusArrivalModel from '../bus-arrival/bus-arrival.model';
 
 /**
  * A class to help query the LTA API
@@ -28,19 +30,29 @@ class LTAApi {
      * Retrieves data from the LTA API
      * @param url The URL to retrieve data from (e.g. 'BusStops')
      * @param skip What number entry we should start retrieving
+     * @param params Query string parameters for the API request
+     * @param returnValue Whether to return the 'value' object in the JSON response, which contains the actual data of
+     * intest for most API calls, rather than the entire JSON object.
      */
-    private get(url : string, skip : number) : Promise<any> {
+    private get(url : string, skip : number, params : {[key:string]:string} = {}, returnValue : boolean = true) : Promise<any> {
 
         return new Promise<any>((resolve, reject) => {
 
-            const fullURL = this.baseURL + url + (skip > -1 ? "?$skip=" + skip : "");
+            const fullURL = this.baseURL + url;
+
+            if(skip > -1) {
+                params["$skip"] = String(skip);
+            }
 
             const options = {
                 url : fullURL,
                 headers: {
                     AccountKey: this.apiKey
-                }
+                },
+                qs: params
             };
+
+            const skipMsg = skip > -1 ? : ''
 
             console.log(`Making request to ${fullURL}...`);
 
@@ -56,7 +68,7 @@ class LTAApi {
                     return;
                 }
 
-                resolve(JSON.parse(body).value);
+                resolve(returnValue ? JSON.parse(body).value : JSON.parse(body));
 
 
             });
@@ -89,9 +101,42 @@ class LTAApi {
 
     }
 
-    private async getAndAccumulateHashMap(url : string, keyfunc: (_ : any) => string) {
+    /**
+     * Retrieves all data for a given LTA API url and organizes that data into a hash map.
+     * @param url The LTA API url to retrieve data from
+     * @param keyfunc A function that will return the hash map key for a given object returned by the API
+     */
+    private getAndAccumulateHashMap(url : string, keyfunc: (_ : any) => string) {
 
-        let skip : number = 0;
+        const loop = (skip : number, accumulated: {[key: string]: any[]}, resolve: any, reject: any) => {
+
+            this.get(url, skip).then(response => {
+
+                if(response.length == 0) {
+                    resolve(accumulated);
+                    return;
+                }
+
+                for(let datum of response) {
+
+                    const key = keyfunc(datum);
+                    const datums = accumulated[key];
+                    if(datums) {
+                        datums.push(datum);
+
+                    } else {
+                        accumulated[key] = [datum];
+                    }
+
+                }
+
+                loop(skip + 500, accumulated, resolve, reject);
+
+            }, failure => reject(failure));
+
+        };
+
+        /*let skip : number = 0;
         let accumulated : {[key: string]: any[]} = {};
 
         let response : any[] = [];
@@ -115,9 +160,11 @@ class LTAApi {
 
             response = await this.get(url, skip);
 
-        }
+        }*/
 
-        return accumulated;
+        return new Promise<{[key: string]: any[]}>((resolve, reject) => {
+           loop(0, {}, resolve, reject);
+        });
 
     }
 
@@ -328,6 +375,122 @@ class LTAApi {
             }, failure => reject(failure));
 
         });
+
+    }
+
+    /**
+     * Retrieves the bus arrival times for a specified bus stop
+     * @param busStopCode The code of the bus stop to retrieve arrival information for
+     * @param useCache whether to look if up-to-date arrival data has already been downloaded
+     * @returns a map from bus service numbers to arrival times for all buses departing from the specified bus stop, if
+     * information is available.
+     *
+     * Unlike the other information we need, bus arrival information is not provided in bulk, and must be requested for
+     * each bus stop. Rather than making thousands of requests to download arrival information for each bus stop, we
+     * download arrival information for each bus stop when we need it, and cache the results so we don't make too many
+     * requests to the API. The cached results expire when the current time surpasses the estimated arrival time for one
+     * of the buses at the given bus stop.
+     */
+    public getBusArrivalTimes(busStopCode : string, useCache : boolean = true) : Promise<{[key:string]: BusArrival}> {
+
+        const lookupAndSave = (resolve : any, reject : any) => {
+
+            this.get('BusArrivalv2', -1, {'BusStopCode': busStopCode}, false).then(response => {
+
+                try {
+                    let busArrivalsMap : {[key: string]: BusArrival} = {};
+                    let busArrivalsToSave : BusArrival[] = [];
+
+                    for(let service of response.Services) {
+
+                        if(service.hasOwnProperty('NextBus')) {
+
+                            const busArrival = new BusArrivalModel({
+                                ServiceNo: service.ServiceNo,
+                                BusStopCode: busStopCode,
+                                EstimatedArrival: new Date(service.NextBus.EstimatedArrival)
+                            });
+
+                            busArrivalsMap[service.ServiceNo] = busArrival;
+                            busArrivalsToSave.push(busArrival);
+
+                        }
+
+                    }
+
+                    BusArrivalModel.insertMany(busArrivalsToSave, err => {
+
+                        if(err) {
+                            reject(err);
+                            return;
+                        }
+
+                        resolve(busArrivalsMap);
+
+                    });
+                } catch(e) {
+                    reject(e);
+                }
+
+
+
+            }, failure => reject(failure));
+
+        };
+
+        if(useCache) {
+
+            return new Promise<{[key: string]: BusArrival}>((resolve, reject) => {
+                BusArrivalModel.find({
+                    BusStopCode: busStopCode
+                }, (err, res) => {
+
+                    if(err) {
+                        reject(err);
+                        return;
+                    }
+
+                    let cacheValid = false;
+                    let busArrivalMap : {[key: string]: BusArrival} = {};
+
+                    for(let arrival of res) {
+                        console.log(`Cached arrival for ${arrival.BusStopCode}: ${arrival}`);
+
+                        busArrivalMap[arrival.ServiceNo as string] = arrival;
+
+                        if(arrival.EstimatedArrival > new Date()) {
+                            cacheValid = true;
+                        } else {
+                            cacheValid = false;
+                            break;
+                        }
+                    }
+
+                    if(cacheValid) {
+                        resolve(busArrivalMap);
+                        return;
+                    }
+
+                    console.log("Cache is not valid...");
+
+                    BusArrivalModel.deleteMany({BusStopCode: busStopCode}, err => {
+
+                        if(err) {
+                            reject(err);
+                            return;
+                        }
+
+                        lookupAndSave(resolve, reject);
+
+                    });
+
+
+                });
+            });
+
+        }
+
+        return new Promise<{[key: string]: BusArrival}>(lookupAndSave);
 
     }
 
