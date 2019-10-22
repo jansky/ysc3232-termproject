@@ -52,8 +52,6 @@ class LTAApi {
                 qs: params
             };
 
-            const skipMsg = skip > -1 ? : ''
-
             console.log(`Making request to ${fullURL}...`);
 
             request(options, (error, response, body) => {
@@ -135,32 +133,6 @@ class LTAApi {
             }, failure => reject(failure));
 
         };
-
-        /*let skip : number = 0;
-        let accumulated : {[key: string]: any[]} = {};
-
-        let response : any[] = [];
-
-        while(response.length > 0 || skip == 0){
-
-            for(let datum of response) {
-
-                const key = keyfunc(datum);
-                const datums = accumulated[key];
-                if(datums) {
-                    datums.push(datum);
-
-                } else {
-                    accumulated[key] = [datum];
-                }
-
-            }
-
-            skip += 500;
-
-            response = await this.get(url, skip);
-
-        }*/
 
         return new Promise<{[key: string]: any[]}>((resolve, reject) => {
            loop(0, {}, resolve, reject);

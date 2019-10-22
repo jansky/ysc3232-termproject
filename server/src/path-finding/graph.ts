@@ -1,5 +1,5 @@
 import BusSegment from "../bus-segment/bus-segment.interface";
-const Graph = require('node-dijkstra')
+import Graph from 'node-dijkstra';
 import * as util from "util";
 import * as fs from "fs";
 
