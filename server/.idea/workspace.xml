@@ -2,16 +2,26 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="d25b8b59-eaea-4521-bec3-74b4e596869d" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/src/path-finding/route-finder.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/path-finding/route-segment.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/path-finding/route.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../app/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../app/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../app/app/src/debug/res/values/google_maps_api.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../app/app/src/debug/res/values/google_maps_api.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/bus-route-stops/bus-route-stops.interface.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/bus-route-stops/bus-route-stops.model.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/bus-segment/bus-segments-with-routes.interface.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/bus-service/service-time-information.interface.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/path-finding/hub-and-spoke.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/path-finding/path-finding.controller.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/path-finding/point-to-point.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/app.js" beforeDir="false" afterPath="$PROJECT_DIR$/build/app.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/config.js" beforeDir="false" afterPath="$PROJECT_DIR$/build/config.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/bus-segment/bus-segment.interface.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/bus-segment/bus-segment.interface.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/bus-segment/bus-segment.model.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/bus-segment/bus-segment.model.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/bus-service/bus-service.model.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/bus-service/bus-service.model.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/bus-stop/bus-stop.model.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/bus-stop/bus-stop.model.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lta.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/lta.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lta/lta.api.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/lta/lta.api.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/path-finding/graph.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/path-finding/graph.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/path-finding/route-finder.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/path-finding/route-finder.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/server.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/server.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/test.ts" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -35,7 +45,7 @@
   <component name="PropertiesComponent">
     <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="last_opened_file_path" value="$USER_HOME$/businfo/templates/route.html" />
     <property name="nodejs_package_manager_path" value="npm" />
     <property name="settings.editor.selected.configurable" value="editor.preferences.fonts.default" />
     <property name="ts.external.directory.path" value="$PROJECT_DIR$/node_modules/typescript/lib" />
@@ -70,7 +80,7 @@
       <workItem from="1570784183059" duration="784000" />
       <workItem from="1570784980691" duration="33305000" />
       <workItem from="1571502767919" duration="16546000" />
-      <workItem from="1571650001483" duration="17186000" />
+      <workItem from="1571650001483" duration="50067000" />
     </task>
     <servers />
   </component>

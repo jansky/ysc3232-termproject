@@ -6,7 +6,15 @@ const busSegmentSchema = new mongoose.Schema({
     ServiceNo: String,
     Direction: Number,
     OriginCode: String,
-    DestinationCode: String
+    DestinationCode: String,
+    WD_FirstBus: String,
+    WD_LastBus: String,
+    SAT_FirstBus: String,
+    SAT_LastBus: String,
+    SUN_FirstBus: String,
+    SUN_LastBus: String,
+    Sequence: Number,
+    SegmentType: String
 });
 
 /**

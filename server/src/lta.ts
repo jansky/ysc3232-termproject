@@ -9,6 +9,11 @@ import BusService from "./bus-service/bus-service.interface";
 import BusStop from "./bus-stop/bus-stop.interface";
 import BusSegment from "./bus-segment/bus-segment.interface";
 import graph from "./path-finding/graph";
+import HubAndSpoke from "./path-finding/hub-and-spoke";
+import {mongo} from "mongoose";
+import BusSegmentsWithRoutes from "./bus-segment/bus-segments-with-routes.interface";
+import BusRouteStops from "./bus-route-stops/bus-route-stops.interface";
+import busRouteStopsModel from "./bus-route-stops/bus-route-stops.model";
 
 const api = new LTAApi(config.lta_api_key);
 
@@ -35,44 +40,59 @@ busStopModel.find({}).remove(err => {
                 return;
             }
 
-            let apiResponse =
-                Promise.all<BusStop[], BusService[], BusSegment[]>(
-                    [api.getAllBusStops(), api.getAllBusServices(), api.getAllBusSegments(22.0, 30.0)]);
+            busRouteStopsModel.find({}).remove( err => {
 
-            apiResponse.then(([busStops, busServices, busSegments]) => {
+                if(err) {
+                    console.error(err);
+                    return;
+                }
 
-                Promise.all<BusStop[], BusService[], BusSegment[]>([
-                    busStopModel.insertMany(busStops),
-                    busServiceModel.insertMany(busServices),
-                    busSegmentModel.insertMany(busSegments)
-                ]).then(_ => {
+                let apiResponse =
+                    Promise.all<BusStop[], BusService[], BusSegment[]>(
+                        [api.getAllBusStops(), api.getAllBusServices(), api.getAllBusSegments(22.0, 30.0)]);
 
-                    console.log(`Saved ${busStops.length} bus stops.`);
-                    console.log(`Saved ${busServices.length} bus services.`);
-                    console.log(`Saved ${busSegments.length} bus segments.`);
+                apiResponse.then(([busStops, busServices, busSegments]) => {
 
-                    const dijkstraGraph = graph.makeGraph(busSegments);
+                    Promise.all<BusStop[], BusService[], BusSegment[]>([
+                        busStopModel.insertMany(busStops),
+                        busServiceModel.insertMany(busServices),
+                        busSegmentModel.insertMany(busSegments)
+                    ]).then(_ => {
 
-                    fs.writeFile("dijkstra_graph.json", JSON.stringify(dijkstraGraph), err => {
+                        console.log(`Saved ${busStops.length} bus stops.`);
+                        console.log(`Saved ${busServices.length} bus services.`);
+                        console.log(`Saved ${busSegments.length} fine-grain bus segments.`);
 
-                        mongoose.disconnect();
+                        Promise.all<BusSegment[], BusSegment[]>([
+                            HubAndSpoke.generateHubToHubSegments(),
+                            HubAndSpoke.generateSpokeToHubToSpokeSegments()
+                        ]).then(([hubToHubSegments, spokeToHubToSpokeSegments]) => {
 
-                        if(err) {
-                            console.error(err);
-                            return;
-                        }
+                            Promise.all<BusSegment[], BusSegment[]>([
+                                busSegmentModel.insertMany(hubToHubSegments),
+                                busSegmentModel.insertMany(spokeToHubToSpokeSegments),
 
-                        console.log("Wrote dijkstra graph.");
+                            ]).then(_ => {
 
-                    })
-
-
-
-                }, err => { console.error(err); mongoose.disconnect(); });
+                                console.log(`Saved ${hubToHubSegments.length} hub-to-hub segments`);
+                                console.log(`Saved ${spokeToHubToSpokeSegments.length} spoke-to-hub-to-spoke segments`);
 
 
-            }, failure => { console.error(err); mongoose.disconnect(); });
+                                mongoose.disconnect();
 
+                            }, failure => { console.error(failure); mongoose.disconnect();})
+
+                        }, failure => { console.error(failure); mongoose.disconnect();});
+
+
+
+
+                    }, err => { console.error(err); mongoose.disconnect(); });
+
+
+                }, failure => { console.error(failure); mongoose.disconnect(); });
+
+            });
         });
     });
 });

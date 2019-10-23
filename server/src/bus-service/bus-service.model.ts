@@ -1,7 +1,8 @@
 import mongoose from 'mongoose';
 import BusService from "./bus-service.interface";
+import {busStopSchema} from "../bus-stop/bus-stop.model";
 
-const busServiceSchema = new mongoose.Schema({
+export const busServiceSchema = new mongoose.Schema({
     ServiceNo: String,
     Operator: String,
     Direction: Number,
@@ -10,6 +11,12 @@ const busServiceSchema = new mongoose.Schema({
     DestinationCode : String,
     LoopDesc: String
 });
+
+busServiceSchema.methods.toJSON = function(){
+    let obj = this.toObject();
+    delete obj._id;
+    return obj;
+};
 
 /**
  * A Mongoose model for storing and retrieving bus services

@@ -8,8 +8,6 @@ import busStopModel from "../bus-stop/bus-stop.model";
 
 const util = require('util');
 
-
-
 /**
  * A class to perform path finding between bus stops
  */

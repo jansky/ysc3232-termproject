@@ -2,13 +2,14 @@
   "name": "busdirection",
   "version": "1.0.0",
   "description": "Backend server for bus direction app project",
-  "main": "app.js",
+  "main": "build/server.js",
   "scripts": {
     "test": "node -r ts-node/register ./src/test.ts",
     "tsc": "tsc",
     "dev": "node -r ts-node/register ./src/server.ts --inspect=5858",
     "lta": "node -r ts-node/register ./src/lta.ts",
     "doc": "typedoc --out ./doc/ ./src/",
+    "start": "node build/server.js",
     "start:watch": "nodemon"
   },
   "author": "",

@@ -189,8 +189,8 @@ class LTAApi {
                         RoadName: stop.RoadName,
                         Description: stop.Description,
                         Location: {
-                            type: "point",
-                            coordinates: [stop.Latitude, stop.Longitude]
+                            type: "Point",
+                            coordinates: [stop.Longitude, stop.Latitude]
                         }
                     });
 
@@ -334,6 +334,14 @@ class LTAApi {
                             OriginCode: stop_i.BusStopCode,
                             DestinationCode: stop_i1.BusStopCode,
                             TravelTime: time,
+                            WD_FirstBus: stop_i.WD_FirstBus,
+                            WD_LastBus: stop_i.WD_LastBus,
+                            SAT_FirstBus: stop_i.SAT_FirstBus,
+                            SAT_LastBus: stop_i.SAT_LastBus,
+                            SUN_FirstBus: stop_i.SUN_FirstBus,
+                            SUN_LastBus: stop_i.SUN_LastBus,
+                            Sequence: i,
+                            SegmentType: "finegrain"
                         });
 
                         busSegments.push(busSegment);
