@@ -20,6 +20,7 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import com.google.android.gms.common.api.Status;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -27,11 +28,17 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+import com.google.android.libraries.places.api.Places;
+import com.google.android.libraries.places.api.model.Place;
+import com.google.android.libraries.places.widget.AutocompleteSupportFragment;
+import com.google.android.libraries.places.widget.listener.PlaceSelectionListener;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
@@ -47,15 +54,38 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private GoogleMap mMap;
     private boolean mLocationPermissionGranted = false;
     private FusedLocationProviderClient mFusedLocationProviderClient;
-
-    // buttons
-    private EditText mSearchText;
+    private AutocompleteSupportFragment autocompleteSupportFragment;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
-        mSearchText = findViewById(R.id.search_bar);
+        if (!Places.isInitialized()) {
+            Places.initialize(getApplicationContext(), getString(R.string.google_maps_key));
+        }
+
+        AutocompleteSupportFragment autocompleteSupportFragment = (AutocompleteSupportFragment)
+                getSupportFragmentManager().findFragmentById(R.id.autocomplete_fragment);
+
+        autocompleteSupportFragment.setPlaceFields(Arrays.asList(Place.Field.ID, Place.Field.NAME,
+                Place.Field.LAT_LNG));
+
+        autocompleteSupportFragment.setOnPlaceSelectedListener(new PlaceSelectionListener() {
+            @Override
+            public void onPlaceSelected(Place place) {
+                // TODO: Get info about the selected place.
+                LatLng latLng = place.getLatLng();
+                updateCamera(latLng, DEFAULT_ZOOM);
+                mMap.addMarker(new MarkerOptions().position(latLng));
+                Log.i(TAG, "Place: " + place.getName() + ", " + place.getLatLng());
+            }
+
+            @Override
+            public void onError(Status status) {
+                // TODO: Handle the error.
+                Log.i(TAG, "An error occurred: " + status);
+            }
+        });
 
         // check to see if permissions is correct, then initialize map
         getLocationPermission();
@@ -74,7 +104,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 return;
             }
             mMap.setMyLocationEnabled(true);
-            initSearchBar();
         }
     }
 
@@ -83,42 +112,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
-    }
-
-    private void initSearchBar() {
-        Log.d(TAG, "initializing search bar");
-
-        mSearchText.setOnEditorActionListener(new TextView.OnEditorActionListener() {
-            @Override
-            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-                if (actionId == EditorInfo.IME_ACTION_SEARCH
-                        || actionId == EditorInfo.IME_ACTION_DONE
-                        || event.getAction() == KeyEvent.ACTION_DOWN
-                        || event.getAction() == KeyEvent.KEYCODE_ENTER) {
-                    geoLocate();
-                }
-                return false;
-            }
-        });
-    }
-
-    private void geoLocate() {
-        Log.d(TAG, "trying to geo locate from string query");
-
-        String searchString = mSearchText.getText().toString();
-
-        Geocoder geocoder = new Geocoder(MapsActivity.this);
-        List<Address> list = new ArrayList<>();
-        try {
-            list = geocoder.getFromLocationName(searchString, 1);
-        } catch (IOException e) {
-            Log.e(TAG, "geoLocate IOException: " + e.getMessage());
-        }
-
-        if (list.size() > 0) {
-            Address address = list.get(0);
-            updateCamera(new LatLng(address.getLatitude(), address.getLongitude()), DEFAULT_ZOOM);
-        }
     }
 
     private void getLocationPermission() {
@@ -184,6 +177,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private void updateCamera(LatLng latLng, float zoom) {
         Log.d(TAG, "updating camera: " + latLng.latitude + ", " + latLng.longitude);
+        mMap.clear();
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, zoom));
         hideKeyboard();
     }
@@ -191,7 +185,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private void hideKeyboard() {
         View view = this.getCurrentFocus();
         if (view != null) {
-            InputMethodManager imm = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
+            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
             imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
         }
     }

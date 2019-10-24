@@ -15,7 +15,7 @@
     <RelativeLayout
         android:id="@+id/relLayout1"
         android:layout_width="331dp"
-        android:layout_height="41dp"
+        android:layout_height="42dp"
         android:layout_alignParentStart="true"
         android:layout_alignParentEnd="true"
         android:layout_marginStart="16dp"
@@ -26,29 +26,12 @@
         android:background="#fff"
         android:elevation="10dp">
 
-        <EditText
-            android:id="@+id/search_bar"
-            android:layout_width="305dp"
-            android:layout_height="match_parent"
-            android:layout_alignParentEnd="true"
-            android:layout_marginStart="8dp"
-            android:layout_marginEnd="0dp"
-            android:layout_toEndOf="@+id/search_badge"
-            android:ems="10"
-            android:hint="Enter Address or Zip Code"
-            android:imeOptions="actionSearch"/>
+        <fragment
+            android:id="@+id/autocomplete_fragment"
+            android:name="com.google.android.libraries.places.widget.AutocompleteSupportFragment"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"/>
 
-        <ImageView
-            android:id="@+id/search_badge"
-            android:layout_width="25dp"
-            android:layout_height="34dp"
-            android:layout_alignParentStart="true"
-            android:layout_alignParentTop="true"
-            android:layout_alignParentBottom="true"
-            android:layout_marginStart="8dp"
-            android:layout_marginTop="8dp"
-            android:layout_marginBottom="8dp"
-            android:src="@android:drawable/ic_search_category_default" />
     </RelativeLayout>
 
 
