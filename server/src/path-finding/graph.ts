@@ -10,7 +10,7 @@ class DijkstraGraph {
     /**
      * Makes a Dijkstra graph
      *
-     * Generates a JSON object that can be used as a Dijkstra graph representing the Singapore public bus network.
+     * Generates a JSON object that can be used as a Dijkstra graph representing the entire Singapore public bus network.
      * The output of this function is meant to be saved to a file so it can be loaded later.
      * @param segments The bus stop segments
      */

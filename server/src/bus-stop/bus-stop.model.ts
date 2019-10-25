@@ -19,6 +19,8 @@ busStopSchema.methods.toJSON = function(){
     return obj;
 };
 
+busStopSchema.index({"BusStopCode": 1});
+
 /**
  * A Mongoose model for storing and retrieving bus stop information
  *

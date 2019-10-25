@@ -16,9 +16,15 @@ const busRouteStopsSchema = new mongoose.Schema({
     SAT_LastBus: String,
     SUN_FirstBus: String,
     SUN_LastBus: String,
-    TravelTime: Number
+    TravelTime: Number,
+    SegmentType: String
 });
 
+busRouteStopsSchema.index({"Service.ServiceNo": 1, "Service.Direction": 1, "SegmentType": 1});
+
+/**
+ * A Mongoose model for storing and retrieving BusRouteStops objects
+ */
 const busRouteStopsModel = mongoose.model<BusRouteStops & mongoose.Document>('BusRouteStops', busRouteStopsSchema);
 
 export default busRouteStopsModel;

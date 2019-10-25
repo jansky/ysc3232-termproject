@@ -18,6 +18,8 @@ busServiceSchema.methods.toJSON = function(){
     return obj;
 };
 
+busServiceSchema.index({"ServiceNo": 1, "Direction": 1});
+
 /**
  * A Mongoose model for storing and retrieving bus services
  */

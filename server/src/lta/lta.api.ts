@@ -434,7 +434,7 @@ class LTAApi {
                     let busArrivalMap : {[key: string]: BusArrival} = {};
 
                     for(let arrival of res) {
-                        console.log(`Cached arrival for ${arrival.BusStopCode}: ${arrival}`);
+                        //console.log(`Cached arrival for ${arrival.BusStopCode}: ${arrival}`);
 
                         busArrivalMap[arrival.ServiceNo as string] = arrival;
 
@@ -451,7 +451,7 @@ class LTAApi {
                         return;
                     }
 
-                    console.log("Cache is not valid...");
+                    //console.log("Cache is not valid...");
 
                     BusArrivalModel.deleteMany({BusStopCode: busStopCode}, err => {
 

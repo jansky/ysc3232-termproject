@@ -17,6 +17,8 @@ const busSegmentSchema = new mongoose.Schema({
     SegmentType: String
 });
 
+busSegmentSchema.index({"ServiceNo": 1, "Direction": 1, "OriginCode": 1, "DestinationCode": 1});
+
 /**
  * A Mongoose model for storing and retrieving bus route segments
  */

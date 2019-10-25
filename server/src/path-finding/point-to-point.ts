@@ -6,9 +6,30 @@ import Route from "./route";
 import busStopModel from "../bus-stop/bus-stop.model";
 import busServiceModel from "../bus-service/bus-service.model";
 import RouteSegment from "./route-segment";
+import busRouteStopsModel from "../bus-route-stops/bus-route-stops.model";
+import BusRouteStops from "../bus-route-stops/bus-route-stops.interface";
 
+/**
+ * A class to perform point-to-point path-finding between bus stops
+ *
+ * For many combinations of origin and destination bus stops, it is possible to find an optimal route between them
+ * by taking a bus from the origin and (i) proceeding directly to the destination on that route, or (ii) transferring
+ * to another bus somewhere in between that leads directly to the destination bus stop.
+ *
+ * In an ideal case, the path-finding method here produces a bus route with zero to one transfers (hence the name point-
+ * to-point). However, we cannot guarantee this to be the case with our algorithm. The Dijkstra graph we produce here
+ * contains *all* bus routes leading from the origin and to the destination, so there exists an opportunity for more than
+ * one transfer. Nonetheless, in most cases this path-finding method either produces a path with zero to one transfers, or
+ * fails to find a path at all. If we do find a path here, it is usually better than the path produced by the hub-and-spoke
+ * method.
+ *
+ */
 class PointToPoint {
 
+    /**
+     * Determines if a bus service or segment is in service
+     * @param service The bus service or segment under consideration
+     */
     private static isInService(service: ServiceTimeInformation) : boolean {
         const now = new Date();
 
@@ -57,6 +78,16 @@ class PointToPoint {
         return now > segmentActiveStartDate && now < segmentActiveEndDate;
     }
 
+    /**
+     * Produces a Dijkstra graph for point-to-point path-finding
+     *
+     * To perform point-to-point path-finding, we produce a Dijkstra graph of a subset of the entire bus network
+     * containing only paths leading from the origin bus stop and paths leading to the destination bus stop.
+     * @param origin The unique code for the origin bus stop
+     * @param destination The unique code for the destination bus stop
+     * @returns A object containing the Dijkstra graph, as well as all of the bus services that satisfy the point-to-point
+     * path-finding criteria (i.e., lead from the origin and to the destination)
+     */
     private static async generatePointToPointGraph(origin: string, destination: string) : Promise<any> {
 
         const originSegments = (await busSegmentModel.find({
@@ -69,13 +100,20 @@ class PointToPoint {
             SegmentType: "finegrain"
         })).filter(seg => PointToPoint.isInService(seg));
 
-        const servicesToDestination : any = {};
+        const servicesToDestination : any[] = [];
 
         const graph : any = {};
 
         for(let segment of originSegments) {
 
-            servicesToDestination[`${segment.ServiceNo}_${segment.Direction}`] = true;
+            /* We encode the bus services in this format because it can be directly used in a MongoDB query
+               for the BusRouteStops object corresponding to the entire bus route.
+             */
+            servicesToDestination.push({
+                "Service.ServiceNo": segment.ServiceNo,
+                "Service.Direction": segment.Direction,
+                "SegmentType": "hubtohub"
+            });
 
             const sameRouteSegments : BusSegment[] = (await busSegmentModel.find({
                 ServiceNo: segment.ServiceNo,
@@ -86,7 +124,7 @@ class PointToPoint {
 
             for(let sameRouteSegment of sameRouteSegments) {
 
-                servicesToDestination[`${sameRouteSegment.ServiceNo}_${sameRouteSegment.Direction}`] = true;
+
 
                 if(!graph.hasOwnProperty(sameRouteSegment.OriginCode)) graph[sameRouteSegment.OriginCode as string] = {};
                 if(!graph.hasOwnProperty(sameRouteSegment.DestinationCode)) graph[sameRouteSegment.DestinationCode as string] = {};
@@ -99,7 +137,11 @@ class PointToPoint {
 
         for(let segment of destinationSegments) {
 
-            servicesToDestination[`${segment.ServiceNo}_${segment.Direction}`] = true;
+            servicesToDestination.push({
+                "Service.ServiceNo": segment.ServiceNo,
+                "Service.Direction": segment.Direction,
+                "SegmentType": "hubtohub"
+            });
 
             const sameRouteSegments : BusSegment[] = (await busSegmentModel.find({
                 ServiceNo: segment.ServiceNo,
@@ -109,8 +151,6 @@ class PointToPoint {
             })).filter(seg => PointToPoint.isInService(seg));
 
             for(let sameRouteSegment of sameRouteSegments) {
-
-                servicesToDestination[`${sameRouteSegment.ServiceNo}_${sameRouteSegment.Direction}`] = true;
 
                 if(!graph.hasOwnProperty(sameRouteSegment.OriginCode)) graph[sameRouteSegment.OriginCode as string] = {};
                 if(!graph.hasOwnProperty(sameRouteSegment.DestinationCode)) graph[sameRouteSegment.DestinationCode as string] = {};
@@ -128,240 +168,199 @@ class PointToPoint {
 
     }
 
-    public static async findPointToPointRoute(originBusCode: string, destinationBuscode: string) : Promise<Route> {
+    /**
+     * Finds a route between two bus stops using the point-to-point method
+     * @param originBusCode The unique code of the origin bus stop
+     * @param destinationBusCode The unique code of the destination bus stop
+     */
+    public static async findPointToPointRoute(originBusCode: string, destinationBusCode: string) : Promise<Route> {
 
-        const graph = await PointToPoint.generatePointToPointGraph(originBusCode, destinationBuscode);
+        const graph = await PointToPoint.generatePointToPointGraph(originBusCode, destinationBusCode);
 
-        const path = graph.graph.path(originBusCode, destinationBuscode);
+        const result = graph.graph.path(originBusCode, destinationBusCode, { cost: true});
+
+        const path : string[] = result.path;
+        const cost : number = result.cost;
 
         if(!path) {
             throw new Error(`No such path`);
         }
 
-        let possibleRoutes : any[] = [];
+        const segments : RouteSegment[] = [];
 
-        for(let i = 0; i < path.length - 1; i++) {
+        /* Get details of all bus routes that can be used to traverse the path */
+        const serviceRoutes = await busRouteStopsModel.find({
+            $or: graph.servicesToDestination
+        });
 
-            const stop_i = path[i];
-            const stop_i1 = path[i + 1];
+        /* We find the optimal way to traverse the list of bus stops by performing a search in rounds:
 
-            const segmentsBetween : BusSegment[] = (await busSegmentModel.find({
-                OriginCode: stop_i,
-                DestinationCode: stop_i1,
-                SegmentType: "finegrain"
-            })).filter(seg => PointToPoint.isInService(seg));
+           From the origin bus stop, we find the bus route that allows us to proceed along the path for the longest
+           distance without transferring. When we get to a point where we must transfer, we start a new round with the
+           latest bus stop and repeat until we eventually arrive at the destination.
+         */
 
-            if(segmentsBetween.length == 0)
-                throw new Error(`No such route`);
+        /* The length of the longest bus route with no transfers in the current round */
+        let maxSegmentLength : {route: any, length: number} = {route: null, length: 0};
+        /* The number bus stop of the starting bus stop for each bus service being considered in the current round */
+        const startPos : {[key: string]: number} = {};
+        /* The number bus stop of the ending bus stop for each bus service being considered in the current round */
+        const endPos : {[key: string]: number} = {};
 
-            if(possibleRoutes.length == 0) {
+        /* The number of the current bus stop being considered from the path */
+        let stopNo = 0;
+        /* Whether any one of the bus services allows us to go one stop further without transferring */
+        let haveStepped = false;
+        /* Whether any one of the bus services allows us to go one stop further without transferring,
+           *in the current round*
+         */
+        let advancedInRound = false;
 
-                segmentsBetween.forEach(segment => {
+        const initRound = () => {
 
-                    possibleRoutes.push({
-                        segments: [segment],
-                        time: segment.TravelTime,
-                        remove: "no"
-                    });
+            const stopCode = path[stopNo];
 
-                });
+            //console.log(`Initializing new round from ${stopCode}...`);
 
-                continue;
+            advancedInRound = false;
 
-            }
+            serviceRoutes.forEach(route => {
 
-            let possibleToNotTransfer = false;
+                const serviceKey = `${route.Service.ServiceNo}_${route.Service.Direction}`;
 
-            for(let possibleRoute of possibleRoutes) {
+                /* By default, assume that the bus service does not include the current bus stop */
+                maxSegmentLength = {route: null, length: 0};
+                startPos[serviceKey] = -1;
+                endPos[serviceKey] = -1;
 
-                const lastSegment : BusSegment = possibleRoute.segments[possibleRoute.segments.length - 1];
+                /* If the current bus stop is on the bus service's route, set the start and end position for the round */
+                for(let i = 0; i < route.BusStops.length; i++) {
 
-                const nonTransferSegment : BusSegment | undefined = segmentsBetween.find(segment =>
-                    segment.ServiceNo == lastSegment.ServiceNo && segment.Direction == lastSegment.Direction
-                );
-
-                if(nonTransferSegment) {
-                    possibleToNotTransfer = true;
-
-                    possibleRoute.segments.push(nonTransferSegment);
-                    possibleRoute.time += nonTransferSegment.TravelTime;
-                    possibleRoute.remove = "no";
-                } else {
-
-                    /* We prefer to transfer to a route leading directly to the destination */
-                    /*const newSegment = segmentsBetween.sort((busSegmentA, busSegmentB) => {
-
-                        const aContains = graph.servicesToDestination.hasOwnProperty(`${busSegmentA.ServiceNo}_${busSegmentA.Direction}`);
-                        const bContains = graph.servicesToDestination.hasOwnProperty(`${busSegmentB.ServiceNo}_${busSegmentB.Direction}`);
-
-                        if(aContains && !bContains) return -1;
-                        else if(!aContains && bContains) return 1;
-                        else return 0;
-
-                    })[0];*/
-
-                    const newSegment = segmentsBetween.filter(segment =>
-                        graph.servicesToDestination.hasOwnProperty(`${segment.ServiceNo}_${segment.Direction}`))[0];
-
-                    if(!newSegment) {
-                        throw new Error(`No such route`);
+                    if(route.BusStops[i].BusStopCode == stopCode) {
+                        startPos[serviceKey] = i;
+                        endPos[serviceKey] = i;
+                        break;
                     }
 
-                    possibleRoute.segments.push(newSegment);
-                    possibleRoute.time += (newSegment.TravelTime  as number) + 5; // Transfer time penalty
-                    possibleRoute.remove = "ifPossibleToNotTransfer";
-
                 }
 
-            }
-
-            /*
-             * If a route between the two bus stops without a transfer is possible, then remove all routes
-             * that involve a transfer. Otherwise, we keep all of the routes.
-             */
-            possibleRoutes = possibleRoutes.filter((possibleRoute, _index, _arr) => {
-
-                return !(possibleToNotTransfer && possibleRoute.remove == "ifPossibleToNotTransfer");
 
             });
 
-        }
+            /*serviceRoutes.forEach(route => {
 
-        /*
-         * We select the route which has the least travel time
-         */
-        const selectedRoute = possibleRoutes.sort((possibleRouteA, possibleRouteB) => {
-            if(possibleRouteA.time < possibleRouteB.time) return -1;
-            else if(possibleRouteA.time == possibleRouteB.time) return 0;
-            else return 1;
-        })[0];
+                const serviceKey = `${route.Service.ServiceNo}_${route.Service.Direction}`;
 
-        const route : Route = {
-            segments: [],
-            travelTime: selectedRoute.time
+                console.log(`\t${serviceKey} startPos = ${startPos[serviceKey]}`);
+                console.log(`\t${serviceKey} endPos = ${endPos[serviceKey]}`);
+
+            });*/
+
         };
 
-        for(let j = 0; j < selectedRoute.segments.length; j++) {
+        /* Determines whether we can go to the next stop in the path on a given bus service without transferring */
+        const canStepTo = (route : BusRouteStops, stopCode : String) => {
 
-            const busSegment = selectedRoute.segments[j];
+            const serviceKey = `${route.Service.ServiceNo}_${route.Service.Direction}`;
 
-            const busStopCodeI = await busStopModel.findOne({
-                BusStopCode: busSegment.OriginCode
+            if(endPos[serviceKey] >= route.BusStops.length - 1) return false;
+
+            return route.BusStops[endPos[serviceKey] + 1].BusStopCode == stopCode;
+
+        };
+
+        /* Once we have found an optimal route for the round, we add it to the final route we will return */
+        const pushSegment = (route : BusRouteStops) => {
+
+            const serviceKey = `${route.Service.ServiceNo}_${route.Service.Direction}`;
+
+            const busStops = route.BusStops.slice(startPos[serviceKey], endPos[serviceKey] + 1);
+
+            //console.log(`Pushing route segment with service ${serviceKey} from ${busStops[0].BusStopCode} to ${busStops[busStops.length - 1].BusStopCode}`);
+
+            segments.push({
+                busService: route.Service,
+                busServiceOrigin: route.ServiceOrigin,
+                busServiceDestination: route.ServiceDestination,
+                busStops: busStops
             });
 
-            const busStopCodeI1 = await busStopModel.findOne({
-                BusStopCode: busSegment.DestinationCode
-            });
+        };
 
-            if(!busStopCodeI || !busStopCodeI1) {
-                throw new Error(`No such bus stops ${busSegment.OriginCode} or ${busSegment.DestinationCode}`);
-            }
+        initRound();
 
-            if(route.segments.length == 0) {
+        let stepCount = 0;
 
-                const busService = await busServiceModel.findOne({
-                    ServiceNo: busSegment.ServiceNo,
-                    Direction: busSegment.Direction
-                });
+        while(stopNo < path.length - 1){
 
-                if(!busService) {
-                    throw new Error(`No such bus service ${busSegment.ServiceNo} with direction ${busSegment.Direction}`);
+            const stop_i = path[stopNo];
+            const stop_i1 = path[stopNo + 1];
+
+            haveStepped = false;
+
+            //console.log(`Step ${stepCount}:`);
+
+            /* For each bus route, see if we can step to the next stop in the path without transferring */
+            serviceRoutes.forEach(route => {
+
+                const serviceKey = `${route.Service.ServiceNo}_${route.Service.Direction}`;
+                if(startPos[serviceKey] < 0) {
+                    //console.log(`\t${serviceKey} cannot step from ${stop_i} to ${stop_i1} (the initial stop of the round is not in its route).`);
+                    return;
                 }
 
-                const busServiceOrigin = await busStopModel.findOne({
-                    BusStopCode: busService.OriginCode
-                });
+                if(canStepTo(route, stop_i1)) {
+                    //console.log(`\t${serviceKey} can step from ${stop_i} to ${stop_i1} (segment length of ${endPos[serviceKey] + 1 - startPos[serviceKey]})`);
+                    advancedInRound = true;
+                    endPos[serviceKey] += 1;
+                    haveStepped = true;
 
-                if(!busServiceOrigin) {
-                    throw new Error(`No such bus stop ${busService.OriginCode}`);
+                    const newLength = endPos[serviceKey] - startPos[serviceKey];
+
+                    if(newLength > maxSegmentLength.length) {
+                        maxSegmentLength = {route: route, length: newLength};
+                    }
+                } else {
+                    //console.log(`\t${serviceKey} cannot step from ${stop_i} to ${stop_i1}.`);
                 }
 
-                const busServiceDestination = await busStopModel.findOne({
-                    BusStopCode: busService.DestinationCode
-                });
-
-                if(!busServiceDestination) {
-                    throw new Error(`No such bus stop ${busService.DestinationCode}`);
-                }
-
-                const routeSegment : RouteSegment = {
-                    busService: busService,
-                    busServiceOrigin: busServiceOrigin,
-                    busServiceDestination: busServiceDestination,
-                    busStops: selectedRoute.segments.length == 1 ? [busStopCodeI, busStopCodeI1] : [busStopCodeI]
-                };
-
-                route.segments.push(routeSegment);
-
-                continue;
-            }
-
-            const lastSegment = route.segments[route.segments.length - 1];
-
-            if(lastSegment.busService.ServiceNo == busSegment.ServiceNo && lastSegment.busService.Direction == busSegment.Direction) {
-
-                lastSegment.busStops.push(busStopCodeI);
-
-                if(j == selectedRoute.segments.length - 1) {
-                    lastSegment.busStops.push(busStopCodeI1);
-                }
-
-                continue;
-
-            }
-
-            const busService = await busServiceModel.findOne({
-                ServiceNo: busSegment.ServiceNo,
-                Direction: busSegment.Direction
             });
 
-            if(!busService) {
-                throw new Error(`No such bus service ${busSegment.ServiceNo} with direction ${busSegment.Direction}`);
+            stepCount += 1;
+
+            /* If we can't move at all during the round, then we can't find a route for the given path */
+            if(!advancedInRound) {
+                throw new Error(`No such route`);
             }
 
-            const busServiceOrigin = await busStopModel.findOne({
-                BusStopCode: busService.OriginCode
-            });
+            /* At this point, if haveStepped = false, then at least one bus services allows us to make progress
+               without transferring, but we cannot continue any further without transferring. We start a new round
+               to find the rest of the bus route.
+             */
+            if(!haveStepped) {
 
-            if(!busServiceOrigin) {
-                throw new Error(`No such bus stop ${busService.OriginCode}`);
+                pushSegment(maxSegmentLength.route);
+                initRound();
+                stepCount = 0;
+            } else {
+                stopNo += 1;
             }
 
-            const busServiceDestination = await busStopModel.findOne({
-                BusStopCode: busService.DestinationCode
-            });
 
-            if(!busServiceDestination) {
-                throw new Error(`No such bus stop ${busService.DestinationCode}`);
-            }
-
-            const lastSegmentLastStop = await busStopModel.findOne({
-                BusStopCode: selectedRoute.segments[j - 1].DestinationCode
-            });
-
-            if(!lastSegmentLastStop) {
-                throw new Error(`No such bus stop ${selectedRoute.segments[j - 1].DestinationCode}`);
-            }
-
-            lastSegment.busStops.push(lastSegmentLastStop);
-
-            if(!busService) {
-                throw new Error(`No such bus service ${busSegment.ServiceNo} with direction ${busSegment.Direction}`);
-            }
-
-            const routeSegment : RouteSegment = {
-                busService: busService,
-                busServiceOrigin: busServiceOrigin,
-                busServiceDestination: busServiceDestination,
-                busStops: j == selectedRoute.segments.length - 1 ? [busStopCodeI, busStopCodeI1] : [busStopCodeI]
-            };
-
-            route.segments.push(routeSegment);
 
 
         }
 
-        return route;
+        /* When we reach the destination we will exit the while loop, but haveStepped will be true. We finalize things
+           by pushing the current portion of the route under consideration.
+         */
+        pushSegment(maxSegmentLength.route);
+
+        return {
+            segments: segments,
+            travelTime: cost + ((segments.length - 1 ) * 5) // Transfer penalty
+        };
+
     }
 
 }

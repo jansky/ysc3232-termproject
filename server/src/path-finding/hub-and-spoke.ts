@@ -7,16 +7,37 @@ import busStopModel from "../bus-stop/bus-stop.model";
 import busRouteStopsModel from "../bus-route-stops/bus-route-stops.model";
 import Graph = require("node-dijkstra");
 import Route from "./route";
-import BusSegmentsWithRoutes from "../bus-segment/bus-segments-with-routes.interface";
 import BusRouteStops from "../bus-route-stops/bus-route-stops.interface";
 import ServiceTimeInformation from "../bus-service/service-time-information.interface";
 import RouteSegment from "./route-segment";
 import * as util from "util";
 const readline = require('readline');
 
+/**
+ * A class for performing hub-and-spoke path-finding between bus stops
+ *
+ * When it is not possible to find a route between two bus stops using the point-to-point method that only considers
+ * bus services that lead directly from the origin and to the destination, hub-and-spoke path-finding allows us to find
+ * an acceptable path by considering the "big-picture" of the bus network. Here, we produce a Dijkstra graph where only
+ * the origin and destination bus stops of each bus service (i.e., interchanges and termini, or the "hubs") are connected,
+ * along with a direct connection between the origin bus stop (i.e., a "spoke") and the destination bus stops of its bus services,
+ * and a direct connection between the destination bus stop (also a spoke) and the origin bus stops of its bus services.
+ *
+ * This produces a path-finding model that first attempts to connect the origin bus stop to a hub, then navigate from this
+ * hub to a hub that connects to the destination bus stop, and then connect to the destination bus stop.
+ *
+ * This path-finding method usually produces sub-optimal results for short distances, but works quite well for long-distances.
+ * By reducing the number of nodes in the graph, we can curtail the tendency of Dijkstra to produce a shortest path involving
+ * many transfers
+ *
+ */
 class HubAndSpoke {
 
-    private static isInService(service : ServiceTimeInformation, remark: string = "") : boolean {
+    /**
+     * Determines if a bus service or segment is in service
+     * @param service The bus service or segment under consideration
+     */
+    private static isInService(service : ServiceTimeInformation) : boolean {
 
         const now = new Date();
 
@@ -66,18 +87,30 @@ class HubAndSpoke {
 
     }
 
+    /**
+     * Generates a Dijkstra graph for hub-and-spoke path-finding
+     * @param origin The unique code of the origin bus stop
+     * @param destination The unique code of the destination bus stop
+     */
     private static async generateHubAndSpokeGraph(origin : string, destination: string) : Promise<any> {
 
+        /* Include connections from the origin bus stop to its hubs - the destination bus stops of all the bus services
+           that service the bus stop.
+         */
         const spokeToHubSegments = await busSegmentModel.find({
             OriginCode: origin,
             SegmentType: "spoketohub"
         });
 
+        /* Include the connections from the destination bus stop to its hubs - the origin bus stops of all the bus services
+           that service the bus stop.
+         */
         const hubToSpokeSegments = await busSegmentModel.find({
             DestinationCode: destination,
             SegmentType: "hubtospoke"
         });
 
+        /* Include the connections between hubs (i.e., bus interchanges and termini) */
         const hubToHubSegments = await busSegmentModel.find({
             SegmentType: "hubtohub"
         });
@@ -86,7 +119,7 @@ class HubAndSpoke {
 ;
         const addSegments = (segments : BusSegment[]) => {
             for(let segment of segments) {
-                if(!HubAndSpoke.isInService(segment, `${segment.ServiceNo}_${segment.Direction} from ${segment.OriginCode} to ${segment.DestinationCode}`)) continue;
+                if(!HubAndSpoke.isInService(segment)) continue;
 
                 if(!graph.hasOwnProperty(segment.OriginCode)) graph[segment.OriginCode as string] = {};
                 if(!graph.hasOwnProperty(segment.DestinationCode)) graph[segment.DestinationCode as string] = {};
@@ -105,6 +138,11 @@ class HubAndSpoke {
 
     }
 
+    /**
+     * Finds a route between two bus stops using the hub-and-spoke path-finding method
+     * @param originBusStop The unique code of the origin bus stop
+     * @param destinationBusStop The unique code of the destination bus stop
+     */
     public static async findHubAndSpokeRoute(originBusStop: string, destinationBusStop: string) : Promise<Route> {
 
         const graph = await HubAndSpoke.generateHubAndSpokeGraph(originBusStop, destinationBusStop);
@@ -115,6 +153,10 @@ class HubAndSpoke {
 
         let travelTime  = 0;
 
+        /* The computed path does not include every bus stop that you must traverse in order to get from the origin bus
+           stop to the destination bus stop. It only includes the big picture - connections between hubs and spokes. We
+           use precomputed route descriptions for these connections to "fill in the gap" and return a complete route.
+         */
         for(let i = 0; i < path.length - 1; i++) {
 
             const stop_i = path[i];
@@ -152,7 +194,22 @@ class HubAndSpoke {
     private static busServiceCache : {[key: string]: BusService} = {};
     private static busRoutesGenerated = 0;
 
-    private static async generateBusRouteStopsFromSegments(segments : BusSegment[], num: number = 0) : Promise<any> {
+    /**
+     * Generates and saves a bus route description for a bus service between two bus stops
+     *
+     * This function saves the generated bus route description immediately and does not return it. Since we will
+     * generate ~50,000 of these bus route descriptions when computing the path-finding database, this prevents us from
+     * exhausting memory and getting memory allocation errors. We also cache bus stop and bus service information as we
+     * look it up to improve the performance of this function. We store this cached information in {@link busStopCache}
+     * and ${@link busRoutesGenerated}. We keep a count of the bus route descriptions generated in
+     * {@link busRoutesGenerated} to inform the user of progress.
+     *
+     * @param segments The bus route segments. All of the segments should belong to the same bus service,
+     * and should be sorted.
+     * @param type The type of the route (e.g., "hubtohub", "hubtospoke", or "spoketohub")
+     * @returns a promise that will be fulfilled when the route description is generated and saved
+     */
+    private static async generateBusRouteStopsFromSegments(segments : BusSegment[], type: string) : Promise<any> {
 
         const busStops : BusStop[] = [];
         const firstSegment = segments[0];
@@ -259,7 +316,7 @@ class HubAndSpoke {
         HubAndSpoke.busRoutesGenerated++;
         readline.clearLine(process.stdout, 0);
         readline.cursorTo(process.stdout, 0);
-        process.stdout.write(`Generated spoke-to-hub-to-spoke for ${HubAndSpoke.busRoutesGenerated} segments...`);
+        process.stdout.write(`Generated bus route description for ${HubAndSpoke.busRoutesGenerated} segments...`);
 
 
 
@@ -276,13 +333,20 @@ class HubAndSpoke {
            SAT_LastBus: firstSegment.SAT_LastBus,
            SUN_FirstBus: firstSegment.SUN_FirstBus,
            SUN_LastBus: firstSegment.SUN_LastBus,
-           TravelTime: travelTime
+           TravelTime: travelTime,
+           SegmentType: type
         }).save();
 
         return;
 
     }
 
+    /**
+     * Generates bus segments and bus route descriptions for hub-to-hub connections
+     *
+     * Hub-to-hub connections are connections between bus interchanges and termini. These segments are used to construct
+     * a Dijkstra graph used for hub-and-spoke path-finding.
+     */
     public static async generateHubToHubSegments() : Promise<BusSegment[]> {
 
         const busServices : BusService[] = await busServiceModel.find({});
@@ -328,7 +392,7 @@ class HubAndSpoke {
                 SegmentType: "hubtohub"
             }));
 
-            hubToHubRouteStopPromises.push(HubAndSpoke.generateBusRouteStopsFromSegments(serviceSegments, numHandled));
+            hubToHubRouteStopPromises.push(HubAndSpoke.generateBusRouteStopsFromSegments(serviceSegments, "hubtohub"));
 
             numHandled += 1;
 
@@ -340,8 +404,15 @@ class HubAndSpoke {
 
     }
 
-
-
+    /**
+     * Generates spoke-to-hub and hub-to-spoke bus segments and bus route descriptions
+     *
+     * Spoke-to-hub connections are connections between a non-interchange or terminal bus stop and a hub that is serviced
+     * by a bus service that services this bus stop.
+     *
+     * Hub-to-spoke connections are connections between an interchange or terminal bus stop and a non-interchange or terminal
+     * bus stop that is serviced by a bus service departing from this interchange or terminal.
+     */
     public static async generateSpokeToHubToSpokeSegments() : Promise<BusSegment[]> {
 
         const busServices : BusService[] = await busServiceModel.find({});
@@ -398,13 +469,13 @@ class HubAndSpoke {
                     serviceSegments.filter((seg, _index, _arr) => {
                         return seg.Sequence < segment.Sequence;
                     })
-                , handledBusServices));
+                , "hubtospoke"));
 
                 hubToHubRouteStopPromises.push(HubAndSpoke.generateBusRouteStopsFromSegments(
                     serviceSegments.filter((seg, _index, _arr) => {
                         return seg.Sequence >= segment.Sequence;
                     })
-                , handledBusServices));
+                , "spoketohub"));
 
                 hubToSpokeToHubSegments.push(new busSegmentModel({
                     ServiceNo: service.ServiceNo,

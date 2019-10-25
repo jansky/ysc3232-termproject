@@ -1,5 +1,4 @@
 import busSegmentModel from "./bus-segment/bus-segment.model";
-import fs = require('fs');
 const mongoose = require('mongoose');
 import config from './config';
 import LTAApi from "./lta/lta.api";
@@ -8,11 +7,7 @@ import busServiceModel from "./bus-service/bus-service.model";
 import BusService from "./bus-service/bus-service.interface";
 import BusStop from "./bus-stop/bus-stop.interface";
 import BusSegment from "./bus-segment/bus-segment.interface";
-import graph from "./path-finding/graph";
 import HubAndSpoke from "./path-finding/hub-and-spoke";
-import {mongo} from "mongoose";
-import BusSegmentsWithRoutes from "./bus-segment/bus-segments-with-routes.interface";
-import BusRouteStops from "./bus-route-stops/bus-route-stops.interface";
 import busRouteStopsModel from "./bus-route-stops/bus-route-stops.model";
 
 const api = new LTAApi(config.lta_api_key);
