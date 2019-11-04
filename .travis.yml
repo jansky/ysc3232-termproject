@@ -6,9 +6,10 @@ matrix:
       install:
         - cd server/
         - npm install
-      before_script:
-        - cd server/
+      services:
+        - mongodb
       script:
+        - npm run lta
         - npm run test
 
     - language: android
