@@ -1,4 +1,7 @@
 <resources>
     <string name="app_name">EZRoute</string>
     <string name="title_activity_maps">Map</string>
+    <string name="title_activity_bus_routes_list">Bus Routes</string>
+    <string name="title_activity_bus_route">BusRouteActivity</string>
+    <string name="navigate_button">"Navigate</string>
 </resources>
