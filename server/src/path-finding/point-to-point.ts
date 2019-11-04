@@ -29,9 +29,11 @@ class PointToPoint {
     /**
      * Determines if a bus service or segment is in service
      * @param service The bus service or segment under consideration
+     * @param nowtime The current date and time, for route-finding purposes
      */
-    private static isInService(service: ServiceTimeInformation) : boolean {
-        const now = new Date();
+    private static isInService(service: ServiceTimeInformation, nowtime : Date = new Date()) : boolean {
+
+        const now = new Date(nowtime.getTime());
 
         let segmentActiveStartHour = NaN;
         let segmentActiveStartMinute = NaN;
@@ -62,10 +64,10 @@ class PointToPoint {
         if(isNaN(segmentActiveStartHour) || isNaN(segmentActiveEndMinute) ||
             isNaN(segmentActiveEndHour) || isNaN(segmentActiveStartMinute)) return false;
 
-        const segmentActiveStartDate = new Date();
+        const segmentActiveStartDate = new Date(now.getTime());
         segmentActiveStartDate.setHours(segmentActiveStartHour, segmentActiveStartMinute, 0, 0);
 
-        const segmentActiveEndDate = new Date();
+        const segmentActiveEndDate = new Date(now.getTime());
         segmentActiveEndDate.setHours(segmentActiveEndHour, segmentActiveEndMinute, 59, 999);
 
         if(segmentActiveEndDate < segmentActiveStartDate) {
@@ -73,7 +75,7 @@ class PointToPoint {
             segmentActiveEndDate.setDate(segmentActiveEndDate.getDate() + 1);
         }
 
-        //console.log(`${remark}: ${segmentActiveStartHour}${segmentActiveStartMinute} - ${segmentActiveEndHour}${segmentActiveEndMinute} (${segmentActiveStartDate} - ${segmentActiveEndDate})`);
+        //console.log(`${segmentActiveStartHour}${segmentActiveStartMinute} - ${segmentActiveEndHour}${segmentActiveEndMinute} (${segmentActiveStartDate} - ${segmentActiveEndDate})`);
 
         return now > segmentActiveStartDate && now < segmentActiveEndDate;
     }
@@ -85,20 +87,21 @@ class PointToPoint {
      * containing only paths leading from the origin bus stop and paths leading to the destination bus stop.
      * @param origin The unique code for the origin bus stop
      * @param destination The unique code for the destination bus stop
+     * @param now The current date and time, for route-finding purposes
      * @returns A object containing the Dijkstra graph, as well as all of the bus services that satisfy the point-to-point
      * path-finding criteria (i.e., lead from the origin and to the destination)
      */
-    private static async generatePointToPointGraph(origin: string, destination: string) : Promise<any> {
+    private static async generatePointToPointGraph(origin: string, destination: string, now : Date = new Date()) : Promise<any> {
 
         const originSegments = (await busSegmentModel.find({
             OriginCode: origin,
             SegmentType: "finegrain"
-        })).filter(seg => PointToPoint.isInService(seg));
+        })).filter(seg => PointToPoint.isInService(seg, now));
 
         const destinationSegments = (await busSegmentModel.find({
             DestinationCode: destination,
             SegmentType: "finegrain"
-        })).filter(seg => PointToPoint.isInService(seg));
+        })).filter(seg => PointToPoint.isInService(seg, now));
 
         const servicesToDestination : any[] = [];
 
@@ -120,11 +123,9 @@ class PointToPoint {
                 Direction: segment.Direction,
                 Sequence: { $gte : segment.Sequence },
                 SegmentType: "finegrain"
-            })).filter(seg => PointToPoint.isInService(seg));
+            })).filter(seg => PointToPoint.isInService(seg, now));
 
             for(let sameRouteSegment of sameRouteSegments) {
-
-
 
                 if(!graph.hasOwnProperty(sameRouteSegment.OriginCode)) graph[sameRouteSegment.OriginCode as string] = {};
                 if(!graph.hasOwnProperty(sameRouteSegment.DestinationCode)) graph[sameRouteSegment.DestinationCode as string] = {};
@@ -148,7 +149,7 @@ class PointToPoint {
                 Direction: segment.Direction,
                 Sequence: { $lte : segment.Sequence },
                 SegmentType: "finegrain"
-            })).filter(seg => PointToPoint.isInService(seg));
+            })).filter(seg => PointToPoint.isInService(seg, now));
 
             for(let sameRouteSegment of sameRouteSegments) {
 
@@ -172,10 +173,11 @@ class PointToPoint {
      * Finds a route between two bus stops using the point-to-point method
      * @param originBusCode The unique code of the origin bus stop
      * @param destinationBusCode The unique code of the destination bus stop
+     * @param now The current date and time, for route-finding purposes
      */
-    public static async findPointToPointRoute(originBusCode: string, destinationBusCode: string) : Promise<Route> {
+    public static async findPointToPointRoute(originBusCode: string, destinationBusCode: string, now : Date = new Date()) : Promise<Route> {
 
-        const graph = await PointToPoint.generatePointToPointGraph(originBusCode, destinationBusCode);
+        const graph = await PointToPoint.generatePointToPointGraph(originBusCode, destinationBusCode, now);
 
         const result = graph.graph.path(originBusCode, destinationBusCode, { cost: true});
 
@@ -345,9 +347,6 @@ class PointToPoint {
             } else {
                 stopNo += 1;
             }
-
-
-
 
         }
 

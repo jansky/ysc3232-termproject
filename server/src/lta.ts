@@ -18,6 +18,8 @@ busStopModel.find({}).remove(err => {
 
     if(err) {
         console.error(err);
+        mongoose.disconnect();
+        process.exit(1);
         return;
     }
 
@@ -25,6 +27,8 @@ busStopModel.find({}).remove(err => {
 
         if(err) {
             console.error(err);
+            mongoose.disconnect();
+            process.exit(1);
             return;
         }
 
@@ -32,6 +36,8 @@ busStopModel.find({}).remove(err => {
 
             if(err) {
                 console.error(err);
+                mongoose.disconnect();
+                process.exit(1);
                 return;
             }
 
@@ -39,6 +45,8 @@ busStopModel.find({}).remove(err => {
 
                 if(err) {
                     console.error(err);
+                    mongoose.disconnect();
+                    process.exit(1);
                     return;
                 }
 
@@ -75,17 +83,21 @@ busStopModel.find({}).remove(err => {
 
                                 mongoose.disconnect();
 
-                            }, failure => { console.error(failure); mongoose.disconnect();})
+                            }, failure => {
+                                console.error(failure);
+                                mongoose.disconnect();
+                                process.exit(1);
+                            })
 
-                        }, failure => { console.error(failure); mongoose.disconnect();});
+                        }, failure => { console.error(failure); mongoose.disconnect(); process.exit(1); });
 
 
 
 
-                    }, err => { console.error(err); mongoose.disconnect(); });
+                    }, err => { console.error(err); mongoose.disconnect(); process.exit(1); });
 
 
-                }, failure => { console.error(failure); mongoose.disconnect(); });
+                }, failure => { console.error(failure); mongoose.disconnect();process.exit(1); });
 
             });
         });

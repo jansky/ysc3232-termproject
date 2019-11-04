@@ -9,7 +9,7 @@ matrix:
       services:
         - mongodb
       script:
-        - npm run lta
+        - travis_retry npm run lta
         - npm run test
 
     - language: android
@@ -23,7 +23,7 @@ matrix:
       before_script:
         - cd app/
       script:
-        - ./gradlew build
+        - ./gradlew test
 
 notifications:
   email:

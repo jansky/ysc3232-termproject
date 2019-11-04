@@ -36,10 +36,11 @@ class HubAndSpoke {
     /**
      * Determines if a bus service or segment is in service
      * @param service The bus service or segment under consideration
+     * @param nowtime The current date and time for route-finding purposes
      */
-    private static isInService(service : ServiceTimeInformation) : boolean {
+    private static isInService(service : ServiceTimeInformation, nowtime : Date = new Date()) : boolean {
 
-        const now = new Date();
+        const now = new Date(nowtime.getTime());
 
         let segmentActiveStartHour = NaN;
         let segmentActiveStartMinute = NaN;
@@ -70,10 +71,10 @@ class HubAndSpoke {
         if(isNaN(segmentActiveStartHour) || isNaN(segmentActiveEndMinute) ||
             isNaN(segmentActiveEndHour) || isNaN(segmentActiveStartMinute)) return false;
 
-        const segmentActiveStartDate = new Date();
+        const segmentActiveStartDate = new Date(now.getTime());
         segmentActiveStartDate.setHours(segmentActiveStartHour, segmentActiveStartMinute, 0, 0);
 
-        const segmentActiveEndDate = new Date();
+        const segmentActiveEndDate = new Date(now.getTime());
         segmentActiveEndDate.setHours(segmentActiveEndHour, segmentActiveEndMinute, 59, 999);
 
         if(segmentActiveEndDate < segmentActiveStartDate) {
@@ -91,8 +92,9 @@ class HubAndSpoke {
      * Generates a Dijkstra graph for hub-and-spoke path-finding
      * @param origin The unique code of the origin bus stop
      * @param destination The unique code of the destination bus stop
+     * @param now The current date and time for route-finding purposes
      */
-    private static async generateHubAndSpokeGraph(origin : string, destination: string) : Promise<any> {
+    private static async generateHubAndSpokeGraph(origin : string, destination: string, now : Date = new Date()) : Promise<any> {
 
         /* Include connections from the origin bus stop to its hubs - the destination bus stops of all the bus services
            that service the bus stop.
@@ -119,7 +121,7 @@ class HubAndSpoke {
 ;
         const addSegments = (segments : BusSegment[]) => {
             for(let segment of segments) {
-                if(!HubAndSpoke.isInService(segment)) continue;
+                if(!HubAndSpoke.isInService(segment, now)) continue;
 
                 if(!graph.hasOwnProperty(segment.OriginCode)) graph[segment.OriginCode as string] = {};
                 if(!graph.hasOwnProperty(segment.DestinationCode)) graph[segment.DestinationCode as string] = {};
@@ -142,10 +144,11 @@ class HubAndSpoke {
      * Finds a route between two bus stops using the hub-and-spoke path-finding method
      * @param originBusStop The unique code of the origin bus stop
      * @param destinationBusStop The unique code of the destination bus stop
+     * @param now The current date and time, for route-finding purposes
      */
-    public static async findHubAndSpokeRoute(originBusStop: string, destinationBusStop: string) : Promise<Route> {
+    public static async findHubAndSpokeRoute(originBusStop: string, destinationBusStop: string, now : Date = new Date()) : Promise<Route> {
 
-        const graph = await HubAndSpoke.generateHubAndSpokeGraph(originBusStop, destinationBusStop);
+        const graph = await HubAndSpoke.generateHubAndSpokeGraph(originBusStop, destinationBusStop, now);
 
         const path = graph.path(originBusStop, destinationBusStop);
 
@@ -165,7 +168,7 @@ class HubAndSpoke {
             const busRouteStops : BusRouteStops = (await busRouteStopsModel.find({
                 OriginCode: stop_i,
                 DestinationCode: stop_i1
-            })).filter(brs => HubAndSpoke.isInService(brs))[0];
+            })).filter(brs => HubAndSpoke.isInService(brs, now))[0];
 
             if(!busRouteStops) {
                 throw new Error(`No route between stops ${stop_i} and ${stop_i1}`);
