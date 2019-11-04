@@ -22,7 +22,7 @@ matrix:
       before_script:
         - cd app/
       script:
-        - ./gradlew build connectedCheck
+        - ./gradlew build
 
 notifications:
   email:
