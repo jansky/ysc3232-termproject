@@ -1,0 +1,27 @@
+matrix:
+  include:
+    - language: node_js
+      install:
+        - cd server/
+        - npm install
+      before_script:
+        - cd server/
+      script:
+        - npm run test
+
+    - language: android
+      dist: trusty
+      jdk: oraclejdk8
+      android:
+        components:
+          - tools
+          - android-29
+          - build-tools-29.0.2
+      before_script:
+        - cd app/
+      script:
+        - ./gradlew build connectedCheck
+
+notifications:
+  email:
+    - ian.duncan@u.yale-nus.edu.sg
