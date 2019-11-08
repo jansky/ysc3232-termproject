@@ -33,7 +33,7 @@
     "jsdoc": "^3.6.3",
     "mocha": "^6.2.2",
     "mongodb": "^3.3.2",
-    "mongoose": "^5.7.4",
+    "mongoose": "^5.7.5",
     "node-dijkstra": "^2.5.0",
     "nodemon": "^1.19.3",
     "request": "^2.88.0",
