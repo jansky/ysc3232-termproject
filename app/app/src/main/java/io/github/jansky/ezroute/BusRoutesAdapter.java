@@ -11,10 +11,19 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.List;
 
+/**
+ * <b>BusRoutesAdapter</b> takes BusRouteActivities and will generate the
+ * list display structure for the BusRouteListActivity.
+ */
 public class BusRoutesAdapter extends RecyclerView.Adapter<BusRoutesAdapter.ViewHolder> {
     private List<BusRoute> busRoutes;
     private LayoutInflater layoutInflater;
 
+    /**
+     * The inner ViewHolder encapsulates the structure of the
+     * activity_bus_route layout and assigns the text values to the
+     * appropriate locations
+     */
     public class ViewHolder extends RecyclerView.ViewHolder {
         TextView busNumber, orgBusStop, dstBusStop;
         public ViewHolder(@NonNull View itemView) {
@@ -25,11 +34,24 @@ public class BusRoutesAdapter extends RecyclerView.Adapter<BusRoutesAdapter.View
         }
     }
 
+    /**
+     * BusRoutesAdapter takes in BusRoutes and generates the visual
+     * activity_bus_route seen on the screen
+     * @param context context of the application
+     * @param busRoutes a list of BusRoutes sorted in order of which
+     *                  bus needs to be boarded first
+     */
     BusRoutesAdapter(Context context, List<BusRoute> busRoutes) {
         this.layoutInflater = LayoutInflater.from(context);
         this.busRoutes = busRoutes;
     }
 
+    /**
+     * onCreateViewHolder() will create the
+     * @param parent
+     * @param viewType
+     * @return
+     */
     @NonNull
     @Override
     public BusRoutesAdapter.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {

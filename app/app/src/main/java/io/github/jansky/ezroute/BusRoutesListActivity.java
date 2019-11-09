@@ -3,6 +3,7 @@ package io.github.jansky.ezroute;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.DefaultItemAnimator;
@@ -29,7 +30,6 @@ public class BusRoutesListActivity extends AppCompatActivity {
 
     private LatLng destination;
     private LatLng origin;
-    private RequestQueue queue;
     private RecyclerView recyclerView;
     private BusRoutesAdapter busRoutesAdapter;
 
@@ -49,11 +49,11 @@ public class BusRoutesListActivity extends AppCompatActivity {
         String orgLng = String.valueOf(origin.longitude);
         String dstLat = String.valueOf(destination.latitude);
         String dstLng = String.valueOf(destination.longitude);
-        queue = Volley.newRequestQueue(this);
         calculateRoute(orgLat, orgLng, dstLat, dstLng);
     }
 
     private void calculateRoute(String orgLat, String orgLng, String dstLat, String dstLng) {
+        Log.d(TAG, "starting to calculate route");
         String url = "https://ezroute.janskyd.com/findroute?originlong=" + orgLng +
                 "&originlat=" + orgLat + "&destlong=" + dstLng + "&destlat=" + dstLat;
 
@@ -66,6 +66,7 @@ public class BusRoutesListActivity extends AppCompatActivity {
                         Log.d(TAG, response.toString());
                         List<BusRoute> busRoutes = new ArrayList<>();
                         try {
+                            Log.d(TAG, response.getString("error"));
                             JSONArray route = response.getJSONObject("route").getJSONArray("segments");
                             for (int i = 0; i < route.length(); i++) {
                                 Bus bus = new Bus(route.getJSONObject(i)
@@ -93,10 +94,11 @@ public class BusRoutesListActivity extends AppCompatActivity {
 
                     }
                 });
-        queue.add(jsonObjectRequest);
+        Singleton.getInstance(this).addToRequestQueue(jsonObjectRequest);
     }
 
     private void populateView(List<BusRoute> busRoutes) {
+        findViewById(R.id.progress_bar).setVisibility(View.GONE);
         busRoutesAdapter = new BusRoutesAdapter(this, busRoutes);
         recyclerView = findViewById(R.id.bus_routes_list);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
