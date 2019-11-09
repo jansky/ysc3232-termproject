@@ -24,6 +24,7 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
@@ -54,6 +55,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     // variables
     private GoogleMap mMap;
+    private Marker marker;
     private boolean mLocationPermissionGranted = false;
     private FusedLocationProviderClient mFusedLocationProviderClient;
     private AutocompleteSupportFragment autocompleteSupportFragment;
@@ -70,7 +72,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
-        Button navigateButton = findViewById(R.id.navigate_button);
+        final Button navigateButton = findViewById(R.id.navigate_button);
         navigateButton.setVisibility(View.GONE);
         if (!Places.isInitialized()) {
             Places.initialize(getApplicationContext(), getString(R.string.google_maps_key));
@@ -94,18 +96,25 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 LatLng latLng = place.getLatLng();
                 destinationLocation = latLng;
                 updateCamera(latLng, DEFAULT_ZOOM);
-                mMap.addMarker(new MarkerOptions().position(latLng));
-                Button navigateButton = findViewById(R.id.navigate_button);
+                marker = mMap.addMarker(new MarkerOptions().position(latLng));
                 navigateButton.setVisibility(View.VISIBLE);
                 Log.i(TAG, "Place: " + place.getName() + ", " + destinationLocation);
             }
 
             @Override
             public void onError(Status status) {
-                // TODO: Handle the error.
                 Log.i(TAG, "An error occurred: " + status);
             }
         });
+
+        autocompleteSupportFragment.getView().findViewById(R.id.places_autocomplete_clear_button)
+                .setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        marker.remove();
+                        navigateButton.setVisibility(View.GONE);
+                    }
+                });
 
         // check to see if permissions is correct, then initialize map
         getLocationPermission();

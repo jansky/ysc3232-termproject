@@ -10,9 +10,11 @@ import androidx.recyclerview.widget.DefaultItemAnimator;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
+import com.android.volley.RetryPolicy;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
@@ -87,34 +89,40 @@ public class BusRoutesListActivity extends AppCompatActivity {
                         Log.d(TAG, response.toString());
                         List<BusRoute> busRoutes = new ArrayList<>();
                         try {
-                            Log.d(TAG, response.getString("error"));
-                            JSONArray route = response.getJSONObject("route").getJSONArray("segments");
-                            for (int i = 0; i < route.length(); i++) {
-                                Bus bus = new Bus(route.getJSONObject(i)
-                                        .getJSONObject("busService").getInt("ServiceNo"));
-                                JSONArray busStops = route.getJSONObject(i).getJSONArray("busStops");
-                                BusStop orgBusStop = new BusStop(busStops.getJSONObject(0)
-                                        .getString("Description"));
-                                BusStop dstBusStop = new BusStop(busStops.getJSONObject(busStops.length() - 1)
-                                        .getString("Description"));
-                                int numStops = busStops.length();
-                                BusRoute busRoute = new BusRoute(bus, orgBusStop, dstBusStop, numStops);
-                                busRoutes.add(busRoute);
+                            if (response.getString("error").equals("none")){
+                                JSONArray route = response.getJSONObject("route").getJSONArray("segments");
+                                for (int i = 0; i < route.length(); i++) {
+                                    Bus bus = new Bus(route.getJSONObject(i)
+                                            .getJSONObject("busService").getInt("ServiceNo"));
+                                    JSONArray busStops = route.getJSONObject(i).getJSONArray("busStops");
+                                    BusStop orgBusStop = new BusStop(busStops.getJSONObject(0)
+                                            .getString("Description"));
+                                    BusStop dstBusStop = new BusStop(busStops.getJSONObject(busStops.length() - 1)
+                                            .getString("Description"));
+                                    int numStops = busStops.length();
+                                    BusRoute busRoute = new BusRoute(bus, orgBusStop, dstBusStop, numStops);
+                                    busRoutes.add(busRoute);
+                                    Log.d(TAG, "done adding bus routes, size: " + busRoutes.size());
+                                    populateView(busRoutes);
+                                }
+                            } else {
+                                throw new IllegalArgumentException();
                             }
-                        } catch (JSONException e) {
+                        } catch (Exception e) {
                             Log.e(TAG, e.toString());
+                            errorView();
                         }
-                        Log.d(TAG, "done adding bus routes, size: " + busRoutes.size());
-                        populateView(busRoutes);
                     }
                 }, new Response.ErrorListener() {
 
                     @Override
                     public void onErrorResponse(VolleyError error) {
-                        // TODO: Handle error
-
+                        errorView();
                     }
                 });
+        RetryPolicy retryPolicy = new DefaultRetryPolicy(10000,
+                DefaultRetryPolicy.DEFAULT_MAX_RETRIES, DefaultRetryPolicy.DEFAULT_BACKOFF_MULT);
+        jsonObjectRequest.setRetryPolicy(retryPolicy);
         Singleton.getInstance(this).addToRequestQueue(jsonObjectRequest);
     }
 
@@ -131,6 +139,15 @@ public class BusRoutesListActivity extends AppCompatActivity {
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setItemAnimator(new DefaultItemAnimator());
         recyclerView.setAdapter(busRoutesAdapter);
+    }
+
+    /**
+     * errorView() will show the sorry error message if the server fails to respond
+     * or calculate a route.
+     */
+    private void errorView() {
+        findViewById(R.id.progress_bar).setVisibility(View.GONE);
+        findViewById(R.id.sorry_message).setVisibility(View.VISIBLE);
     }
 
 }
