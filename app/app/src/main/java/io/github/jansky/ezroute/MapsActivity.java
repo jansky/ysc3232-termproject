@@ -35,6 +35,11 @@ import com.google.android.libraries.places.widget.listener.PlaceSelectionListene
 
 import java.util.Arrays;
 
+/**
+ * The MapsActivity is the functionality of the Google Maps view
+ * that is on screen. It will allow the user to find and navigate to a destination location
+ * using the Google Places api.
+ */
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
 
     // constants
@@ -55,6 +60,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private LatLng destinationLocation = null;
     private LatLng originLocation = null;
 
+    /**
+     * onCreate() overrides the default onCreate method. It will set the screen to
+     * the current location of the user and restrict the search bounds to Singapore
+     * @param savedInstanceState bundle of information, but not used as it is the default
+     *                           starting activity of the application.
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -100,6 +111,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         getLocationPermission();
     }
 
+    /**
+     * onMapReady() defines what happens when the map is ready and loaded.
+     * It will check to see if the user's location permissions are allowed
+     * for the app's usage.
+     * @param googleMap the base GoogleMap
+     */
     @Override
     public void onMapReady(GoogleMap googleMap) {
         Log.d(TAG, "map is ready to load");
@@ -116,6 +133,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
+    /**
+     * navigateRoute() gathers the origin location and destination location
+     * and starts the activity to display the routes as a list. This is triggered
+     * when the button is clicked.
+     * @param view
+     */
     public void navigateRoute(View view) {
         Bundle bundle = new Bundle();
         bundle.putParcelable(DESTINATION_KEY, destinationLocation);
@@ -125,6 +148,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         startActivity(intent);
     }
 
+    /**
+     * initMap() initializes the map for the application to display.
+     */
     private void initMap() {
         Log.d(TAG, "initializing map");
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
@@ -132,6 +158,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mapFragment.getMapAsync(this);
     }
 
+    /**
+     * getLocationPermission() will check and prompt the user to enable
+     * location permissions to be used by the application.
+     */
     private void getLocationPermission() {
         Log.d(TAG, "getting location permissions");
         String[] permissions = {FINE_LOCATION, COARSE_LOCATION};
@@ -147,6 +177,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
+    /**
+     * onRequestPermissionsResult() will check through the permissions to see if everything
+     * is properly given. If so, it will allow the user to run the application.
+     * @param requestCode A request code that is unique to the message request
+     * @param permissions the string array of permissions that it will check
+     * @param grantResults the values of grantResults that indicate if a permission
+     *                     has or has not been granted.
+     */
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         mLocationPermissionGranted = false;
@@ -166,6 +204,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
+    /**
+     * getDeviceLocation() will get the device's location and display it on the map
+     */
     private void getDeviceLocation() {
         Log.d(TAG, "getting device current location");
 
@@ -194,6 +235,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
+    /**
+     * updateCamera() will move the camera to the location desired and will change the
+     * zoom level accordingly
+     * @param latLng location of where the camera should pan to
+     * @param zoom the zoom level the camera should be set to at the location
+     */
     private void updateCamera(LatLng latLng, float zoom) {
         Log.d(TAG, "updating camera: " + latLng.latitude + ", " + latLng.longitude);
         mMap.clear();
@@ -201,6 +248,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         hideKeyboard();
     }
 
+    /**
+     * hideKeyboard() makes sure that the system keyboard is hidden when an action is performed.
+     */
     private void hideKeyboard() {
         View view = this.getCurrentFocus();
         if (view != null) {

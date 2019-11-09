@@ -25,6 +25,10 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * BusRoutesListActivity is the activity that contains and generates
+ * all the BusRoutes viewed on screen.
+ */
 public class BusRoutesListActivity extends AppCompatActivity {
     private static final String TAG = "BusRoutesList";
 
@@ -33,6 +37,13 @@ public class BusRoutesListActivity extends AppCompatActivity {
     private RecyclerView recyclerView;
     private BusRoutesAdapter busRoutesAdapter;
 
+    /**
+     * onCreate() overrides the default method on what occurs when this
+     * activity is created. In this use, it will create the container to display
+     * the list of BusRoutes, as well as instruct a thread to receive the calculations
+     * done by the server.
+     * @param savedInstanceState the Bundle of information passed by the MapsActivity
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -52,6 +63,16 @@ public class BusRoutesListActivity extends AppCompatActivity {
         calculateRoute(orgLat, orgLng, dstLat, dstLng);
     }
 
+    /**
+     * calculateRoute() will perform a request to the backend server to
+     * get the routes from the origin location to the destination location.
+     * It will also a worker thread in the RequestQueue to update the view once
+     * the calculations are complete.
+     * @param orgLat string format of the origin location's latitude in decimal degrees
+     * @param orgLng string format of the origin location's longitude in decimal degrees
+     * @param dstLat string format of the destination location's latitude in decimal degrees
+     * @param dstLng string format of the destination location's longitude in decimal degrees
+     */
     private void calculateRoute(String orgLat, String orgLng, String dstLat, String dstLng) {
         Log.d(TAG, "starting to calculate route");
         String url = "https://ezroute.janskyd.com/findroute?originlong=" + orgLng +
@@ -97,6 +118,12 @@ public class BusRoutesListActivity extends AppCompatActivity {
         Singleton.getInstance(this).addToRequestQueue(jsonObjectRequest);
     }
 
+    /**
+     * populateView() will populate and update the view on the screen
+     * with all the bus routes that the backend server had calculated.
+     * It will also remove the progress bar when the routes are done calculating
+     * @param busRoutes the list of BusRoutes calculated by the server
+     */
     private void populateView(List<BusRoute> busRoutes) {
         findViewById(R.id.progress_bar).setVisibility(View.GONE);
         busRoutesAdapter = new BusRoutesAdapter(this, busRoutes);

@@ -6,7 +6,12 @@ import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.toolbox.Volley;
 
-public class Singleton {
+/**
+ * The Singleton class is a singleton that handles requests for the server calculations.
+ * This code was adapted from the example code found on
+ * https://developer.android.com/training/volley/requestqueue
+ */
+class Singleton {
     private static Singleton instance;
     private RequestQueue requestQueue;
     private static Context ctx;
@@ -16,14 +21,14 @@ public class Singleton {
         requestQueue = getRequestQueue();
     }
 
-    public static synchronized Singleton getInstance(Context context) {
+    static synchronized Singleton getInstance(Context context) {
         if (instance == null) {
             instance = new Singleton(context);
         }
         return instance;
     }
 
-    public RequestQueue getRequestQueue() {
+    private RequestQueue getRequestQueue() {
         if (requestQueue == null) {
             // getApplicationContext() is key, it keeps you from leaking the
             // Activity or BroadcastReceiver if someone passes one in.
@@ -32,7 +37,7 @@ public class Singleton {
         return requestQueue;
     }
 
-    public <T> void addToRequestQueue(Request<T> req) {
+    <T> void addToRequestQueue(Request<T> req) {
         getRequestQueue().add(req);
     }
 }

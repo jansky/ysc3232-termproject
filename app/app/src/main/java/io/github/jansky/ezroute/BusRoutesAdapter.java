@@ -47,10 +47,11 @@ public class BusRoutesAdapter extends RecyclerView.Adapter<BusRoutesAdapter.View
     }
 
     /**
-     * onCreateViewHolder() will create the
-     * @param parent
-     * @param viewType
-     * @return
+     * onCreateViewHolder() will create the individual routes viewed on screen. This is used
+     * internally by the RecyclerView.Adapter class.
+     * @param parent a ViewGroup
+     * @param viewType a view type
+     * @return a ViewHolder
      */
     @NonNull
     @Override
@@ -61,6 +62,12 @@ public class BusRoutesAdapter extends RecyclerView.Adapter<BusRoutesAdapter.View
         return new BusRoutesAdapter.ViewHolder(itemView);
     }
 
+    /**
+     * onBindViewHolder() is a method used internally by RecyclerView.Adapter. It sets the text
+     * for each of the individual view rows.
+     * @param holder a ViewHolder
+     * @param position an index position of the list
+     */
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         BusRoute busRoute = busRoutes.get(position);
@@ -69,6 +76,11 @@ public class BusRoutesAdapter extends RecyclerView.Adapter<BusRoutesAdapter.View
         holder.dstBusStop.setText(busRoute.getDstBusStop().getName());
     }
 
+    /**
+     * getItemCount() is used internally by RecyclerView.Adapter and it should
+     * return the amount of items, which in this case is the amount of BusRoutes
+     * @return number of items
+     */
     @Override
     public int getItemCount() {
         return busRoutes.size();

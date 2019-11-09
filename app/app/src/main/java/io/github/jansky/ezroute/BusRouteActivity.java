@@ -10,6 +10,11 @@ import androidx.appcompat.widget.Toolbar;
 
 import android.view.View;
 
+/**
+ * BusRouteActivity is the activity for each individual bus route. It needs
+ * to be defined so that the RecyclerView.Adapter can create individual
+ * activities for each BusRoute to populate the list.
+ */
 public class BusRouteActivity extends AppCompatActivity {
 
     @Override
