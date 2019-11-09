@@ -57,6 +57,7 @@ public class BusRoutesListActivity extends AppCompatActivity {
         String url = "https://ezroute.janskyd.com/findroute?originlong=" + orgLng +
                 "&originlat=" + orgLat + "&destlong=" + dstLng + "&destlat=" + dstLat;
 
+        // TODO: deal with error on json response
         JsonObjectRequest jsonObjectRequest = new JsonObjectRequest
                 (Request.Method.GET, url, null, new Response.Listener<JSONObject>() {
 
@@ -74,7 +75,8 @@ public class BusRoutesListActivity extends AppCompatActivity {
                                         .getString("Description"));
                                 BusStop dstBusStop = new BusStop(busStops.getJSONObject(busStops.length() - 1)
                                         .getString("Description"));
-                                BusRoute busRoute = new BusRoute(bus, orgBusStop, dstBusStop);
+                                int numStops = busStops.length();
+                                BusRoute busRoute = new BusRoute(bus, orgBusStop, dstBusStop, numStops);
                                 busRoutes.add(busRoute);
                             }
                         } catch (JSONException e) {
