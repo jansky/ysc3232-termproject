@@ -63,7 +63,7 @@ describe("EZRoute", function(){
             assert.fail("Route should not have been returned");
         }, _ => {}).finally(done);
 
-    });
+    }).timeout(10000);
 
     it("should not return a hub-and-spoke route when there is no service", function (done) {
 
