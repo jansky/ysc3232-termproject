@@ -33,7 +33,7 @@ describe("EZRoute", function(){
 
         assert.ok(valid);
 
-    });
+    }).timeout(10000);
 
     it("should be able to find a hub-and-spoke route between two bus stops", async function(){
 
@@ -49,7 +49,7 @@ describe("EZRoute", function(){
 
         assert.ok(valid);
 
-    });
+    }).timeout(10000);
 
     it("should not return a point-to-point route when there is no service", function (done) {
 
@@ -77,7 +77,7 @@ describe("EZRoute", function(){
             assert.fail("Route should not have been returned");
         }, _ => {}).finally(done);
 
-    });
+    }).timeout(10000);
 
 
 

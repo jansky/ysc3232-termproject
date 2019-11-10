@@ -14,6 +14,7 @@ const api = new LTAApi(config.lta_api_key);
 
 mongoose.connect(config.mongodb_url);
 
+// First delete all data from the database
 busStopModel.find({}).remove(err => {
 
     if(err) {
@@ -50,12 +51,14 @@ busStopModel.find({}).remove(err => {
                     return;
                 }
 
+                // Get all bus stop, service, and route data from the LTA API
                 let apiResponse =
                     Promise.all<BusStop[], BusService[], BusSegment[]>(
                         [api.getAllBusStops(), api.getAllBusServices(), api.getAllBusSegments(22.0, 30.0)]);
 
                 apiResponse.then(([busStops, busServices, busSegments]) => {
 
+                    // Save the raw data from the API
                     Promise.all<BusStop[], BusService[], BusSegment[]>([
                         busStopModel.insertMany(busStops),
                         busServiceModel.insertMany(busServices),
@@ -66,11 +69,14 @@ busStopModel.find({}).remove(err => {
                         console.log(`Saved ${busServices.length} bus services.`);
                         console.log(`Saved ${busSegments.length} fine-grain bus segments.`);
 
+                        // Generate additional information used for hub-and-spoke
+                        // and point-to-point route finding
                         Promise.all<BusSegment[], BusSegment[]>([
                             HubAndSpoke.generateHubToHubSegments(),
                             HubAndSpoke.generateSpokeToHubToSpokeSegments()
                         ]).then(([hubToHubSegments, spokeToHubToSpokeSegments]) => {
 
+                            // Save this information too
                             Promise.all<BusSegment[], BusSegment[]>([
                                 busSegmentModel.insertMany(hubToHubSegments),
                                 busSegmentModel.insertMany(spokeToHubToSpokeSegments),
@@ -78,7 +84,7 @@ busStopModel.find({}).remove(err => {
                             ]).then(_ => {
 
                                 console.log(`Saved ${hubToHubSegments.length} hub-to-hub segments`);
-                                console.log(`Saved ${spokeToHubToSpokeSegments.length} spoke-to-hub-to-spoke segments`);
+                                console.log(`Saved ${spokeToHubToSpokeSegments.length} spoke-to-hub / hub-to-spoke segments`);
 
 
                                 mongoose.disconnect();
