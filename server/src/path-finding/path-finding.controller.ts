@@ -13,12 +13,21 @@ import BusArrival from "../bus-arrival/bus-arrival.interface";
  * A controller that handles path-finding requests
  */
 class PathFindingController implements ControllerInterface {
+    /**
+     * The router for this controller
+     */
     public readonly router: express.Router = express.Router();
 
+    /**
+     * Constructs a new PathFindingController
+     */
     constructor() {
         this.initializeRoutes();
     }
 
+    /**
+     * Initializes the router for this controller
+     */
     private initializeRoutes() {
         this.router.get('/findroute', PathFindingController.findPath);
     }

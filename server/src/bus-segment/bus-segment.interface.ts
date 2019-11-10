@@ -3,6 +3,9 @@
  */
 import ServiceTimeInformation from "../bus-service/service-time-information.interface";
 
+/**
+ * An interface for objects storing a segment of a bus route
+ */
 interface BusSegment extends ServiceTimeInformation {
     /**
      * The number of the bus service
