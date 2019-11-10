@@ -15,6 +15,7 @@ import android.util.Log;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
+import android.widget.EditText;
 
 import com.google.android.gms.common.api.Status;
 import com.google.android.gms.location.FusedLocationProviderClient;
@@ -78,7 +79,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             Places.initialize(getApplicationContext(), getString(R.string.google_maps_key));
         }
 
-        AutocompleteSupportFragment autocompleteSupportFragment = (AutocompleteSupportFragment)
+        final AutocompleteSupportFragment autocompleteSupportFragment = (AutocompleteSupportFragment)
                 getSupportFragmentManager().findFragmentById(R.id.autocomplete_fragment);
 
         autocompleteSupportFragment.setPlaceFields(Arrays.asList(Place.Field.ID, Place.Field.NAME,
@@ -111,6 +112,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 .setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
+                        ((EditText) autocompleteSupportFragment.getView().
+                                findViewById(R.id.places_autocomplete_search_input)).setText("");
                         marker.remove();
                         navigateButton.setVisibility(View.GONE);
                     }
